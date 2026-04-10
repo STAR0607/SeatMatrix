@@ -13,6 +13,14 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 try:
+    import psycopg2
+    from psycopg2.extras import DictCursor
+    POSTGRES_SUPPORTED = True
+except ImportError:
+    POSTGRES_SUPPORTED = False
+
+
+try:
     import openpyxl
     EXCEL_SUPPORTED = True
 except ImportError:
@@ -36,15 +44,42 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "..", "database", "seatmatrix.
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+class DBWrapper:
+    def __init__(self, conn, is_pg):
+        self.conn = conn
+        self.is_pg = is_pg
+    def execute(self, query, params=None):
+        if self.is_pg:
+            query = query.replace('?', '%s')
+            cur = self.conn.cursor(cursor_factory=DictCursor)
+            cur.execute(query, params or ())
+            return cur
+        return self.conn.execute(query, params or ())
+    def commit(self): self.conn.commit()
+    def close(self): self.conn.close()
+    def cursor(self):
+        if self.is_pg: return self.conn.cursor(cursor_factory=DictCursor)
+        return self.conn.cursor()
+
+
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    if DATABASE_URL:
+        # PostgreSQL connection
+        conn = psycopg2.connect(DATABASE_URL)
+        return DBWrapper(conn, True)
+    else:
+        # SQLite connection
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        return DBWrapper(conn, False)
+
 
 def init_db():
     conn = get_db()
     c = conn.cursor()
-    c.executescript("""
+    script = """
     CREATE TABLE IF NOT EXISTS users (
         username TEXT PRIMARY KEY, password TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'staff', name TEXT NOT NULL
@@ -86,7 +121,14 @@ def init_db():
         id TEXT PRIMARY KEY, exam_id TEXT NOT NULL,
         data TEXT NOT NULL, created_at TEXT
     );
-    """)
+    """
+    if DATABASE_URL:
+        # PostgreSQL doesn't have executescript, run as one or split
+        c.execute(script)
+    else:
+        # sqlite3 executescript handles multiple statements
+        c.executescript(script)
+
 
     if c.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
         c.execute("INSERT INTO users VALUES (?,?,?,?)", ("admin", hashlib.sha256("admin123".encode()).hexdigest(), "admin", "Administrator"))
