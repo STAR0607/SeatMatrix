@@ -1,0 +1,112 @@
+{
+  "colleges": {
+    "sasurie": {
+      "name": "Sasurie College of Engineering",
+      "address": "Vijayamangalam, Tiruppur District, Tamil Nadu - 638056",
+      "phone": "+91 4294 220333",
+      "email": "info@sasurie.ac.in",
+      "website": "www.sasurie.ac.in",
+      "halls": [
+        {
+          "id": "hall-101",
+          "name": "Hall 101",
+          "location": "Main Block - Ground Floor",
+          "capacity": 40,
+          "rows": 5,
+          "cols": 8,
+          "blocked_seats": [],
+          "description": "Primary examination hall"
+        },
+        {
+          "id": "hall-102",
+          "name": "Hall 102",
+          "location": "Main Block - Ground Floor",
+          "capacity": 40,
+          "rows": 5,
+          "cols": 8,
+          "blocked_seats": [],
+          "description": "Primary examination hall"
+        },
+        {
+          "id": "hall-201",
+          "name": "Hall 201",
+          "location": "Main Block - First Floor",
+          "capacity": 48,
+          "rows": 6,
+          "cols": 8,
+          "blocked_seats": [],
+          "description": "Large examination hall"
+        },
+        {
+          "id": "hall-202",
+          "name": "Hall 202",
+          "location": "Main Block - First Floor",
+          "capacity": 48,
+          "rows": 6,
+          "cols": 8,
+          "blocked_seats": [],
+          "description": "Large examination hall"
+        },
+        {
+          "id": "lab-cs1",
+          "name": "CS Lab 1",
+          "location": "CS Block - Ground Floor",
+          "capacity": 30,
+          "rows": 5,
+          "cols": 6,
+          "blocked_seats": ["R3C3", "R3C4"],
+          "description": "Computer Science Laboratory"
+        },
+        {
+          "id": "lab-cs2",
+          "name": "CS Lab 2",
+          "location": "CS Block - First Floor",
+          "capacity": 30,
+          "rows": 5,
+          "cols": 6,
+          "blocked_seats": [],
+          "description": "Computer Science Laboratory 2"
+        },
+        {
+          "id": "seminar-hall",
+          "name": "Seminar Hall",
+          "location": "Admin Block",
+          "capacity": 100,
+          "rows": 10,
+          "cols": 10,
+          "blocked_seats": [],
+          "description": "Main seminar hall for large batches"
+        },
+        {
+          "id": "hall-301",
+          "name": "Hall 301",
+          "location": "Main Block - Second Floor",
+          "capacity": 40,
+          "rows": 5,
+          "cols": 8,
+          "blocked_seats": ["R1C1", "R5C8"],
+          "description": "Third floor examination hall"
+        }
+      ]
+    },
+    "external_college": {
+      "name": "External College Template",
+      "address": "Add your college address here",
+      "phone": "",
+      "email": "",
+      "website": "",
+      "halls": [
+        {
+          "id": "ext-hall-1",
+          "name": "Hall A",
+          "location": "Block 1",
+          "capacity": 40,
+          "rows": 5,
+          "cols": 8,
+          "blocked_seats": [],
+          "description": "Template hall - customize as needed"
+        }
+      ]
+    }
+  }
+}

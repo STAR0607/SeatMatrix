@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Seating — {{ room_name }}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; font-size: 11px; background: white; color: #000; }
+  .page { padding: 10mm 12mm; max-width: 297mm; margin: 0 auto; }
+  .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #C62828; padding-bottom: 10px; margin-bottom: 10px; gap: 16px; }
+  .header-left { display: flex; align-items: center; gap: 14px; flex: 1; }
+  .header-logo { height: 56px; width: auto; object-fit: contain; flex-shrink: 0; filter: brightness(0) saturate(100%) invert(18%) sepia(96%) saturate(2472%) hue-rotate(349deg) brightness(85%) contrast(112%); }
+  .college-name { font-size: 15px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.8px; color: #C62828; }
+  .college-sub { font-size: 9px; color: #555; margin-top: 2px; }
+  .header-right { text-align: right; }
+  .exam-title-label { font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; color: #1a1a2e; }
+  .exam-name-label { font-size: 9px; color: #777; margin-top: 2px; }
+  .info-bar { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; background: #fff5f5; border: 1px solid #FFCDD2; border-radius: 4px; padding: 8px 14px; margin-bottom: 8px; }
+  .info-item { text-align: center; min-width: 70px; }
+  .info-label { font-size: 7.5px; color: #999; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+  .info-value { font-size: 11px; font-weight: bold; margin-top: 1px; color: #1a1a2e; }
+  .legend { display: flex; gap: 14px; font-size: 9px; align-items: center; margin-bottom: 7px; flex-wrap: wrap; }
+  .legend strong { font-size: 9px; color: #444; }
+  .lb { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 3px; vertical-align: middle; border: 1px solid; }
+  .summary { margin-bottom: 8px; }
+  .summary h4 { font-size: 10px; font-weight: bold; margin-bottom: 4px; color: #333; }
+  .summary table { border-collapse: collapse; font-size: 9.5px; }
+  .summary td, .summary th { border: 1px solid #ddd; padding: 3px 12px; }
+  .summary th { background: #f5f5f5; font-weight: 600; color: #444; }
+  .grid-label { font-size: 9px; color: #888; text-align: center; margin-bottom: 4px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .grid-wrap { overflow-x: auto; margin-bottom: 10px; }
+  table.seat-grid { border-collapse: collapse; table-layout: fixed; }
+  table.seat-grid td { border: 1px solid #ddd; text-align: center; vertical-align: middle; height: 64px; width: 76px; padding: 3px; font-size: 9px; }
+  td.seat-a { background: #FFF8F8; border-color: #FFCDD2; }
+  td.seat-b { background: #F3F8FF; border-color: #BBDEFB; }
+  td.seat-c { background: #F3FFF5; border-color: #C8E6C9; }
+  td.blocked { background: #F5F5F5; color: #bbb; font-size: 14px; }
+  td.empty { background: #FAFAFA; }
+  td.aisle { background: transparent; border: none; width: 14px !important; padding: 0; }
+  .s-num { font-size: 14px; font-weight: bold; color: #C62828; line-height: 1; }
+  td.seat-b .s-num { color: #1565C0; }
+  td.seat-c .s-num { color: #2E7D32; }
+  .s-reg { font-size: 8.5px; font-weight: 600; margin: 2px 0 1px; }
+  .s-dept { font-size: 7px; color: #666; }
+  .s-subj { font-size: 7.5px; font-weight: 600; color: #333; margin-top: 2px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 70px; margin-left: auto; margin-right: auto; }
+  .s-set { font-size: 7.5px; font-weight: bold; margin-top: 1px; }
+  td.seat-a .s-set { color: #C62828; } td.seat-b .s-set { color: #1565C0; } td.seat-c .s-set { color: #2E7D32; }
+  .door-slip { border: 2px dashed #C62828; border-radius: 5px; padding: 8px 14px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
+  .door-cut { font-size: 8.5px; color: #999; margin-bottom: 2px; }
+  .door-title { font-size: 14px; font-weight: bold; color: #C62828; }
+  .door-info { font-size: 10px; color: #444; margin-top: 2px; }
+  .door-icon { width: 40px; height: 40px; background: #fff5f5; border: 1.5px solid #FFCDD2; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #C62828; flex-shrink: 0; }
+  .signatures { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd; }
+  .sig-box { text-align: center; }
+  .sig-line { border-bottom: 1px solid #333; width: 150px; margin: 0 auto 4px; height: 24px; }
+  .sig-label { font-size: 8.5px; color: #666; }
+  .footer { text-align: center; font-size: 7.5px; color: #bbb; margin-top: 10px; }
+  .print-btn { position: fixed; top: 14px; right: 14px; background: #C62828; color: #fff; border: none; padding: 10px 22px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; font-family: Arial; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 9999; }
+  .print-btn:hover { background: #B71C1C; }
+  @media print {
+    .print-btn { display: none !important; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page { padding: 6mm 8mm; }
+    td.seat-a { background: #FFF8F8 !important; } td.seat-b { background: #F3F8FF !important; } td.seat-c { background: #F3FFF5 !important; }
+  }
+</style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">Print</button>
+<div class="page">
+  <div class="header">
+    <div class="header-left">
+      <img src="{{ url_for('static', filename='images/sasurie_invert_logo-removebg-preview.png') }}" alt="Sasurie Logo" class="header-logo" onerror="this.style.display='none'"/>
+      <div>
+        <div class="college-name">Sasurie College of Engineering</div>
+        <div class="college-sub">(Autonomous) — Vijayamangalam, Tiruppur District, Tamil Nadu – 638056</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="exam-title-label">Seating Arrangement</div>
+      <div class="exam-name-label">{{ exam_name }}</div>
+    </div>
+  </div>
+
+  <div class="info-bar">
+    <div class="info-item"><div class="info-label">Hall</div><div class="info-value">{{ room_name }}</div></div>
+    <div class="info-item"><div class="info-label">Dept / Subject</div><div class="info-value">{{ subject or '—' }}{% if subject_code %} ({{ subject_code }}){% endif %}</div></div>
+    <div class="info-item"><div class="info-label">Date</div><div class="info-value">{{ exam_date or '—' }}</div></div>
+    <div class="info-item"><div class="info-label">Time</div><div class="info-value">{{ exam_time or '—' }}</div></div>
+    <div class="info-item"><div class="info-label">Duration</div><div class="info-value">{{ duration or '—' }}</div></div>
+    <div class="info-item"><div class="info-label">Invigilator</div><div class="info-value">{{ invigilator or '—' }}</div></div>
+    <div class="info-item"><div class="info-label">Students</div><div class="info-value">{{ total_students }}</div></div>
+  </div>
+
+  <div class="legend">
+    <strong>Paper Sets:</strong>
+    <span><span class="lb" style="background:#FFF8F8;border-color:#FFCDD2"></span>Set A</span>
+    <span><span class="lb" style="background:#F3F8FF;border-color:#BBDEFB"></span>Set B</span>
+    <span><span class="lb" style="background:#F3FFF5;border-color:#C8E6C9"></span>Set C</span>
+    <span><span class="lb" style="background:#F5F5F5;border-color:#ddd"></span>Blocked</span>
+    <span style="color:#aaa;font-size:8px;margin-left:4px">Adjacent students always have different paper sets</span>
+  </div>
+
+  <div class="summary">
+    <h4>Department-wise Summary</h4>
+    <table>
+      <tr><th>Department / Year</th><th>Count</th></tr>
+      {% for label, count in summary %}
+      <tr><td>{{ label }}</td><td>{{ count }}</td></tr>
+      {% endfor %}
+      <tr><th>Total</th><th>{{ total_students }}</th></tr>
+    </table>
+  </div>
+
+  <div class="grid-label">Front of Hall (Blackboard)</div>
+
+  <div class="grid-wrap">
+    <table class="seat-grid">
+      {% for row in grid %}
+      <tr>
+        {% for cell in row %}
+        {% if cell.type == 'aisle' %}<td class="aisle"></td>
+        {% elif cell.type == 'blocked' %}<td class="blocked">—</td>
+        {% elif cell.type == 'empty' %}<td class="empty"></td>
+        {% else %}
+          <td class="seat-{{ cell.paper_set|lower }}">
+            <div class="s-num">{{ cell.seat_number }}</div>
+            <div class="s-reg">{{ cell.register_number }}</div>
+            <div class="s-dept">{{ cell.department }} · Y{{ cell.year }}</div>
+            <div class="s-subj" title="{{ cell.subject }}">{{ cell.subject[:22] if cell.subject else '—' }}</div>
+            <div class="s-set">Set {{ cell.paper_set }}</div>
+          </td>
+        {% endif %}
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="door-slip">
+    <div>
+      <div class="door-cut">Cut and paste near hall entrance</div>
+      <div class="door-title">{{ room_name }} — {{ exam_name }} — {{ exam_date }}</div>
+      <div class="door-info">Seats {{ seat_min }}–{{ seat_max }} &nbsp;|&nbsp; {{ total_students }} Students &nbsp;|&nbsp; Invigilator: {{ invigilator }}</div>
+    </div>
+    <div class="door-icon">HALL</div>
+  </div>
+
+  <div class="signatures">
+    <div class="sig-box"><div class="sig-line"></div><div class="sig-label">Invigilator Signature</div></div>
+    <div class="sig-box"><div class="sig-line"></div><div class="sig-label">Hall Superintendent</div></div>
+    <div class="sig-box"><div class="sig-line"></div><div class="sig-label">Chief Superintendent</div></div>
+  </div>
+
+  <div class="footer">Generated by SeatMatrix &middot; Sasurie College of Engineering &middot; {{ generated_at }}</div>
+</div>
+</body>
+</html>
