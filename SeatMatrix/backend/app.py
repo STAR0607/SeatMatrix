@@ -665,7 +665,6 @@ def colleges():
 @app.route("/api/colleges/<cid>", methods=["DELETE"])
 @login_required
 def delete_college(cid):
-    if cid == "sasurie": return jsonify({"error":"Cannot delete built-in Sasurie preset"}),400
     conn = get_db()
     conn.execute("DELETE FROM college_halls WHERE college_id=?",(cid,))
     conn.execute("DELETE FROM colleges WHERE id=?",(cid,))
@@ -695,6 +694,19 @@ def delete_college_hall(cid, hid):
     conn = get_db()
     conn.execute("DELETE FROM college_halls WHERE id=? AND college_id=?",(hid,cid))
     conn.commit(); conn.close(); return jsonify({"success":True})
+
+@app.route("/api/colleges/<cid>/halls/bulk-delete", methods=["DELETE"])
+@login_required
+def bulk_delete_college_halls(cid):
+    hall_ids = request.json.get("hall_ids", [])
+    if not hall_ids: return jsonify({"error": "No halls selected"}), 400
+    conn = get_db()
+    # Using parameterized query for multiple IDs
+    placeholders = ",".join(["?"] * len(hall_ids))
+    query = f"DELETE FROM college_halls WHERE id IN ({placeholders}) AND college_id=?"
+    conn.execute(query, tuple(hall_ids) + (cid,))
+    conn.commit(); conn.close()
+    return jsonify({"success": True, "count": len(hall_ids)})
 
 @app.route("/api/colleges/<cid>/halls/<hid>/load", methods=["POST"])
 @login_required

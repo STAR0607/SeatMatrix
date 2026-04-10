@@ -594,14 +594,6 @@ tbody tr:last-child td { border-bottom: none; }
 .detail-actions button:hover { background: rgba(255,255,255,0.25); }
 .detail-content { padding: 24px; overflow-x: auto; }
 
-/* ─── COLLEGES ─────────────────────── */
-.colleges-grid { display: flex; flex-direction: column; gap: 12px; }
-.college-card {
-  border: 1.5px solid var(--grey-200); border-radius: var(--radius-sm);
-  padding: 16px; display: flex; justify-content: space-between; align-items: flex-start;
-}
-.college-card-name { font-weight: 600; margin-bottom: 4px; }
-.college-card-addr { font-size: 0.8rem; color: var(--grey-600); }
 
 /* ─── ERROR & TOAST ─────────────────── */
 .error-msg {
@@ -1050,28 +1042,132 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .halls-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
 }
 
 /* ─── HALL PRESET CARD ───────────────────── */
 .hall-preset-card {
-  background: white; border-radius: 12px;
+  background: white;
+  border-radius: 14px;
   border: 1.5px solid var(--grey-200);
-  padding: 14px; transition: all 0.15s;
+  padding: 18px;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
 }
 .hall-preset-card:hover {
   border-color: var(--red);
-  box-shadow: 0 4px 12px rgba(211,47,47,0.08);
+  box-shadow: 0 8px 24px rgba(211,47,47,0.1);
+  transform: translateY(-2px);
 }
 .hall-preset-top {
-  display: flex; justify-content: space-between;
-  align-items: flex-start; margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
 }
-.hall-preset-name { font-weight: 700; font-size: 0.95rem; }
-.hall-preset-block { font-size: 0.75rem; color: var(--grey-500); margin-top: 2px; }
-.hall-preset-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
-.hall-mini-grid-wrap { margin: 8px 0 2px; }
+.hall-preset-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+}
+.hall-preset-name { font-weight: 700; font-size: 1.1rem; color: var(--text); line-height: 1.2; }
+.hall-preset-block { font-size: 0.8rem; color: var(--grey-500); margin-top: 4px; }
+.hall-preset-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.preset-meta-pill {
+  background: var(--grey-100);
+  color: var(--grey-700);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 50px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--grey-200);
+  white-space: nowrap;
+}
+.hall-mini-grid-wrap { margin: 12px 0 4px; flex: 1; }
+
+.halls-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1.5px solid var(--grey-200);
+  margin-bottom: 12px;
+}
+.check-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--grey-700);
+  cursor: pointer;
+}
+.check-label input[type="checkbox"] {
+  accent-color: var(--red);
+  width: 16px;
+  height: 16px;
+}
+.hall-select-check {
+  accent-color: var(--red);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.btn-sm-danger {
+  background: var(--red-light) !important;
+  color: var(--red) !important;
+  border: 1.5px solid rgba(211,47,47,0.2) !important;
+  font-weight: 700 !important;
+}
+.btn-sm-danger:hover {
+  background: var(--red) !important;
+  color: white !important;
+  border-color: var(--red) !important;
+}
+
+.modal-close-small {
+  background: none;
+  border: none;
+  color: var(--grey-400);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.modal-close-small:hover {
+  color: var(--red);
+}
+
+.btn-sm-load {
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(211,47,47,0.2);
+}
+.btn-sm-load:hover {
+  background: var(--red-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(211,47,47,0.3);
+}
+
 
 /* ═══════════════════════════════════
    SEATMATRIX IMPROVEMENTS — ADDITIONS

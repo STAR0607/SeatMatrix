@@ -2070,15 +2070,24 @@ function renderColleges(colleges) {
         <div class="college-card-right">
           <span class="college-hall-count">${col.halls.length} hall${col.halls.length !== 1 ? 's' : ''}</span>
           <button class="btn-sm btn-sm-outline" onclick="event.stopPropagation();showAddHallModal('${col.id}','${col.name.replace(/'/g,"\\'")}')">＋ Add Hall</button>
-          ${col.id !== 'sasurie' ? `<button class="btn-sm btn-sm-danger" onclick="event.stopPropagation();deleteCollege('${col.id}')">🗑</button>` : ''}
+          <button class="btn-sm btn-sm-danger" onclick="event.stopPropagation();deleteCollege('${col.id}')">🗑</button>
         </div>
       </div>
       <div class="college-halls-wrap" id="halls-${col.id}" style="display:none">
         ${col.halls.length === 0
           ? `<div class="halls-empty">No halls added yet. Click <strong>＋ Add Hall</strong> to define hall layouts for this college.</div>`
-          : `<div class="halls-grid">${col.halls.map(h => renderHallCard(col.id, h)).join('')}</div>`
+          : `
+            <div class="halls-toolbar">
+              <label class="check-label">
+                <input type="checkbox" onchange="toggleAllHalls('${col.id}', this.checked)">
+                Select All
+              </label>
+              <button class="btn-sm btn-sm-danger" id="bulk-del-${col.id}" style="display:none" onclick="bulkDeleteHalls('${col.id}')">🗑 Delete Selected</button>
+            </div>
+            <div class="halls-grid">${col.halls.map(h => renderHallCard(col.id, h)).join('')}</div>`
         }
       </div>
+
     </div>
   `).join('');
 }
@@ -2088,11 +2097,14 @@ function renderHallCard(colId, h) {
   return `
   <div class="hall-preset-card">
     <div class="hall-preset-top">
-      <div>
-        <div class="hall-preset-name">${h.name}</div>
-        ${h.block ? `<div class="hall-preset-block">${h.block}${h.location ? ' · ' + h.location : ''}</div>` : ''}
+      <div class="hall-preset-header-left">
+        <input type="checkbox" class="hall-select-check" data-col="${colId}" data-id="${h.id}" onchange="updateBulkDeleteBtn('${colId}')" onclick="event.stopPropagation()">
+        <div>
+          <div class="hall-preset-name">${h.name}</div>
+          ${h.block ? `<div class="hall-preset-block">${h.block}${h.location ? ' · ' + h.location : ''}</div>` : ''}
+        </div>
       </div>
-      <button class="modal-close" style="font-size:0.85rem" onclick="deleteHall('${colId}','${h.id}','${h.name.replace(/'/g,"\\'")}')">✕</button>
+      <button class="modal-close-small" onclick="deleteHall('${colId}','${h.id}','${h.name.replace(/'/g,"\\'")}')">✕</button>
     </div>
     <div class="hall-preset-meta">
       <span class="preset-meta-pill">🪑 ${h.capacity || '?'} seats</span>
@@ -2172,6 +2184,50 @@ async function deleteCollege(id) {
   toast('College deleted', 'success');
   loadColleges();
 }
+
+function toggleAllHalls(colId, checked) {
+  const wrap = document.getElementById('halls-' + colId);
+  if (!wrap) return;
+  wrap.querySelectorAll('.hall-select-check').forEach(cb => {
+    cb.checked = checked;
+  });
+  updateBulkDeleteBtn(colId);
+}
+
+function updateBulkDeleteBtn(colId) {
+  const wrap = document.getElementById('halls-' + colId);
+  const btn = document.getElementById('bulk-del-' + colId);
+  if (!wrap || !btn) return;
+  const count = wrap.querySelectorAll('.hall-select-check:checked').length;
+  btn.style.display = count > 0 ? 'inline-block' : 'none';
+  btn.textContent = `🗑 Delete Selected (${count})`;
+}
+
+async function bulkDeleteHalls(colId) {
+  const wrap = document.getElementById('halls-' + colId);
+  if (!wrap) return;
+  const checked = wrap.querySelectorAll('.hall-select-check:checked');
+  const ids = Array.from(checked).map(cb => cb.dataset.id);
+  if (ids.length === 0) return;
+
+  if (!confirm(`Delete ${ids.length} selected hall presets?`)) return;
+
+  try {
+    const res = await fetch(`/api/colleges/${colId}/halls/bulk-delete`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hall_ids: ids })
+    });
+    if (res.ok) {
+      toast(`${ids.length} halls deleted`, 'success');
+      loadColleges();
+    } else {
+      const d = await res.json();
+      toast(d.error || 'Delete failed', 'error');
+    }
+  } catch (e) { toast('Network error', 'error'); }
+}
+
 
 function showAddHallModal(collegeId, collegeName) {
   document.getElementById('hall-college-id').value = collegeId;
