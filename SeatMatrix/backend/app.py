@@ -10,7 +10,7 @@ import json, re, csv, io, os, random, hashlib, uuid, sqlite3
 from datetime import datetime
 from functools import wraps
 from dotenv import load_dotenv
-from openai import OpenAI
+
 
 try:
     import psycopg2
@@ -46,22 +46,33 @@ os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+class CursorWrapper:
+    def __init__(self, cur, is_pg):
+        self.cur = cur
+        self.is_pg = is_pg
+    def execute(self, query, params=None):
+        if self.is_pg:
+            query = query.replace('?', '%s')
+            self.cur.execute(query, params or ())
+            return self # Enable chaining
+        return self.cur.execute(query, params or ())
+    def fetchone(self): return self.cur.fetchone()
+    def fetchall(self): return self.cur.fetchall()
+    def __getattr__(self, name): return getattr(self.cur, name)
+
 class DBWrapper:
     def __init__(self, conn, is_pg):
         self.conn = conn
         self.is_pg = is_pg
     def execute(self, query, params=None):
-        if self.is_pg:
-            query = query.replace('?', '%s')
-            cur = self.conn.cursor(cursor_factory=DictCursor)
-            cur.execute(query, params or ())
-            return cur
-        return self.conn.execute(query, params or ())
+        return self.cursor().execute(query, params)
     def commit(self): self.conn.commit()
     def close(self): self.conn.close()
     def cursor(self):
-        if self.is_pg: return self.conn.cursor(cursor_factory=DictCursor)
-        return self.conn.cursor()
+        if self.is_pg:
+            return CursorWrapper(self.conn.cursor(cursor_factory=DictCursor), True)
+        return CursorWrapper(self.conn.cursor(), False)
+
 
 
 def get_db():
@@ -1217,42 +1228,7 @@ def export_csv(exam_id):
     return send_file(io.BytesIO(out.read().encode()), mimetype="text/csv",
                      as_attachment=True, download_name=f"{name}_seating.csv")
 
-@app.route("/api/ai-analyze", methods=["POST"])
-@login_required
-def ai_analyze():
-    exam_id = request.json.get("exam_id")
-    conn = get_db()
-    row = conn.execute("SELECT * FROM seating WHERE exam_id=? ORDER BY created_at DESC LIMIT 1",(exam_id,)).fetchone()
-    conn.close()
-    if not row: return jsonify({"error":"No arrangement to analyze"}),404
-    arr = json.loads(row["data"]); seats = arr.get("seats",[])
-    dept_dist = {}
-    for s in seats:
-        room = s.get("room_name","?"); dept = s.get("department","?")
-        dept_dist.setdefault(room,{}); dept_dist[room][dept] = dept_dist[room].get(dept,0)+1
-    summary = f"""Analyze exam seating for malpractice risk:
-- Students: {len(seats)}, Rooms: {len(set(s['room_id'] for s in seats))}
-- Departments: {list(set(s.get('department','') for s in seats))}
-- Distribution: {json.dumps(dept_dist)}
-- Settings: {json.dumps(arr.get('settings',{}))}
-Reply ONLY with JSON: risk_score(0-10), issues(list), suggestions(list), quality_score(0-10), summary(string)"""
-    api_key = os.getenv("GROK_API_KEY")
-    if not api_key or api_key == "your_grok_api_key_here":
-        return jsonify({"error":"GROK_API_KEY not set in .env"}),400
-    try:
-        client = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
-        msg = client.chat.completions.create(model="grok-3-fast-beta", max_tokens=1024,
-            messages=[{"role":"system","content":"Reply only with valid JSON."},
-                      {"role":"user","content":summary}])
-        text = msg.choices[0].message.content.strip()
-        if text.startswith("```"): text = re.sub(r"```[a-z]*\n?","",text).replace("```","").strip()
-        try: analysis = json.loads(text)
-        except:
-            m = re.search(r'\{.*\}', text, re.DOTALL)
-            analysis = json.loads(m.group()) if m else {"summary":text}
-        return jsonify({"success":True,"analysis":analysis})
-    except Exception as e:
-        return jsonify({"error":f"Grok API error: {str(e)}"}),500
+
 
 # ── PRINT EXPORT ──────────────────────────────────────────────────────────────
 @app.route("/api/print/<exam_id>/<room_id>")

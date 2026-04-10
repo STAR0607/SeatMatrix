@@ -325,7 +325,7 @@ Save frequently-used hall layouts so you don't have to re-enter them every time.
 - CSV export of students and seating
 - College Presets with hall layouts
 - Real-time dashboard statistics
-- AI malpractice risk analysis (requires Grok API key)
+
 
 ### ⚠️ Known Limitations
 - SQLite database — fine for one college, but for very high traffic use PostgreSQL
@@ -352,7 +352,8 @@ Netlify is designed for **static websites** (HTML/CSS/JS only). It cannot run Py
 1. Create account at [railway.app](https://railway.app)
 2. Connect your GitHub repository
 3. Railway auto-detects Flask and deploys it
-4. Add environment variables (SECRET_KEY, GROK_API_KEY) in Railway dashboard
+4. Add environment variables (SECRET_KEY) in Railway dashboard
+
 5. Your app gets a public URL like `seatmatrix.up.railway.app`
 
 **Option 2 — Render (Free tier)**
@@ -395,7 +396,6 @@ git push
 Set these in your hosting platform's dashboard:
 ```
 SECRET_KEY=your-long-random-secret-key
-GROK_API_KEY=xai-your-grok-api-key
 FLASK_ENV=production
 FLASK_DEBUG=0
 ```
@@ -413,8 +413,6 @@ A: The new arrangement replaces the old one for that exam.
 **Q: Can I use any CSV file or only Sasurie format?**
 A: Any CSV. If your register numbers follow Sasurie format (73YYXXXNNN), department and year are decoded automatically. Otherwise, provide those columns in the CSV.
 
-**Q: The AI analysis button does nothing — why?**
-A: You need a Grok API key. Get one free at [console.x.ai](https://console.x.ai) and add it to your `.env` file as `GROK_API_KEY=xai-...`
 
 **Q: How do I backup my data?**
 A: Copy the `database/seatmatrix.db` file. That single file contains everything — exams, rooms, students, users, arrangements.

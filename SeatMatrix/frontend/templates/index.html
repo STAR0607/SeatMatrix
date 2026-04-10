@@ -32,10 +32,10 @@
       <h1 class="brand-title">SeatMatrix</h1>
       <p class="brand-tagline">Powered by Sasurie College of Engineering</p>
       <div class="brand-features">
-        <div class="feature-pill">🛡️ Anti-Malpractice AI</div>
         <div class="feature-pill">📊 Smart Distribution</div>
         <div class="feature-pill">⚡ Instant Generation</div>
       </div>
+
     </div>
     <div class="login-form-wrap">
       <div class="login-card">
@@ -247,7 +247,8 @@
       <div class="section-header">
         <div>
           <h1>Generate Seating</h1>
-          <p>AI-powered anti-malpractice seat allocation</p>
+          <p>Smart anti-malpractice seat allocation</p>
+
         </div>
       </div>
       <div class="generate-layout">
@@ -417,22 +418,15 @@
             <div id="preview-print-actions" style="display:none;padding:10px 0 4px;border-bottom:1px solid #f0f0f0;margin-bottom:10px;gap:8px;flex-wrap:wrap">
               <button class="btn-primary" onclick="printGeneratedHalls()" style="background:linear-gradient(135deg,#C62828,#D32F2F);font-size:0.85rem;padding:7px 14px">🖨️ Print All Halls</button>
               <button class="btn-secondary" onclick="exportCSV()" style="font-size:0.85rem;padding:7px 14px">📥 Export CSV</button>
-              <button class="btn-secondary" onclick="runAiAnalysis()" style="font-size:0.85rem;padding:7px 14px">🤖 AI Analyze</button>
             </div>
+
             <div id="seating-preview" class="seating-preview">
               <div class="preview-placeholder">
                 <span>⚡</span>
                 <p>Generate a seating arrangement to see the live preview</p>
               </div>
             </div>
-            <div id="ai-analysis-panel" class="ai-panel" style="display:none">
-              <div class="ai-panel-header">
-                <span>🤖 AI Risk Analysis</span>
-                <button class="btn-sm" onclick="runAiAnalysis()">Analyze</button>
-              </div>
-              <div id="ai-analysis-result" class="ai-result"></div>
-            </div>
-          </div>
+
         </div>
       </div>
     </section>

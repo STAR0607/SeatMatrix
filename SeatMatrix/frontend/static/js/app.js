@@ -787,8 +787,8 @@ async function generateSeating(appendMode = false) {
       remainingStudentsForNextHall = data.remaining_students || [];
 
       renderSeatingPreview(data.arrangement.seats);
-      document.getElementById('ai-analysis-panel').style.display = 'block';
       document.getElementById('preview-legend').style.display = 'flex';
+
 
       // Show print/export action bar
       const printActions = document.getElementById('preview-print-actions');
@@ -1005,36 +1005,7 @@ function renderSeatingPreview(seats) {
   });
 }
 
-// ─── AI ANALYSIS ─────────────────────
-async function runAiAnalysis() {
-  if (!currentArrangementId) { toast('Generate a seating arrangement first', 'error'); return; }
 
-  const result = document.getElementById('ai-analysis-result');
-  result.textContent = '🤖 Analyzing arrangement for malpractice risks...';
-
-  try {
-    const res = await fetch('/api/ai-analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ exam_id: currentArrangementId })
-    });
-    const data = await res.json();
-
-    if (data.analysis) {
-      const a = data.analysis;
-      result.innerHTML = `
-        ${a.risk_score !== undefined ? `<div>🎯 Risk Score: <strong>${a.risk_score}/10</strong></div>` : ''}
-        ${a.quality_score !== undefined ? `<div>✅ Quality: <strong>${a.quality_score}/10</strong></div>` : ''}
-        ${a.summary ? `<div style="margin-top:8px">${a.summary}</div>` : ''}
-        ${a.suggestions ? `<div style="margin-top:8px">💡 ${Array.isArray(a.suggestions) ? a.suggestions.join(', ') : a.suggestions}</div>` : ''}
-      `;
-    } else {
-      result.textContent = data.error || 'Analysis unavailable';
-    }
-  } catch (e) {
-    result.textContent = 'AI analysis failed. Check GROK_API_KEY in .env';
-  }
-}
 
 // ─── ARCHIVES ─────────────────────────
 async function loadArchives() {

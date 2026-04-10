@@ -80,10 +80,10 @@ Change password via User Accounts after first login.
 
 ```env
 SECRET_KEY=your-secret-key-here
-GROK_API_KEY=xai-your-grok-api-key
 FLASK_ENV=development
 FLASK_DEBUG=1
 ```
+
 
 ---
 
@@ -145,9 +145,9 @@ SeatMatrix/
 
 - Backend: Python 3, Flask, SQLite
 - Frontend: HTML, CSS, Vanilla JS (single-page)
-- AI: Grok API (xAI) via OpenAI SDK
 - PDF: PyMuPDF (optional — pip install PyMuPDF)
 - Excel: openpyxl (optional — pip install openpyxl)
+
 
 ---
 
