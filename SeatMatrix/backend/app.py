@@ -423,14 +423,14 @@ def students():
          "register_number":d["register_number"],
          "department":d.get("department","") or auto_dept,
          "year":str(d.get("year","")) or auto_year,
-         "subject":d.get("subject",""),
+         "subject":"",
          "email":d.get("email",""),
          "created_at":datetime.now().isoformat()}
     try:
         conn = get_db()
         conn.execute("INSERT INTO students VALUES (?,?,?,?,?,?,?,?)",tuple(s.values()))
         conn.commit(); conn.close(); return jsonify(s), 201
-    except sqlite3.IntegrityError:
+    except Exception:
         return jsonify({"error":"Register number already exists"}),400
 
 @app.route("/api/students/<sid>", methods=["PUT","DELETE"])
@@ -442,9 +442,9 @@ def student_detail(sid):
         conn.commit(); conn.close(); return jsonify({"success":True})
     d = request.json or {}
     conn.execute(
-        "UPDATE students SET student_name=?,register_number=?,department=?,year=?,subject=? WHERE id=?",
+        "UPDATE students SET student_name=?,register_number=?,department=?,year=?,email=? WHERE id=?",
         (d.get("student_name"),d.get("register_number"),
-         d.get("department",""),d.get("year",""),d.get("subject",""),sid))
+         d.get("department",""),d.get("year",""),d.get("email",""),sid))
     conn.commit(); conn.close(); return jsonify({"success":True})
 
 # ── USERS ─────────────────────────────────────────────────────────────────────
@@ -620,16 +620,32 @@ def bulk_import_students():
 
     # ── Insert into DB ──────────────────────────────
     conn = get_db()
-    for r in rows_to_insert:
-        if not r["register_number"]: skipped += 1; continue
-        try:
-            conn.execute("INSERT INTO students VALUES (?,?,?,?,?,?,?,?)", (
-                str(uuid.uuid4()), r["student_name"], r["register_number"],
-                r["department"], r["year"], r["subject"], r["email"], datetime.now().isoformat()))
-            added += 1
-        except sqlite3.IntegrityError:
-            skipped += 1
-    conn.commit(); conn.close()
+    try:
+        # Pre-fetch existing register numbers to prevent postgres throwing transaction-aborting exceptions inside loop
+        existing = {row[0] for row in conn.execute("SELECT register_number FROM students").fetchall()}
+        for r in rows_to_insert:
+            if not r["register_number"]: 
+                skipped += 1
+                continue
+            if r["register_number"] in existing:
+                skipped += 1
+                continue
+            
+            try:
+                conn.execute("INSERT INTO students VALUES (?,?,?,?,?,?,?,?)", (
+                    str(uuid.uuid4()), r["student_name"], r["register_number"],
+                    r["department"], r["year"], "", r["email"], datetime.now().isoformat()))
+                existing.add(r["register_number"])
+                added += 1
+            except Exception:
+                skipped += 1
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": f"Import failed: {str(e)}"}), 500
+    finally:
+        conn.close()
+
     return jsonify({"added": added, "skipped": skipped, "total": added + skipped,
                     "message": f"Imported {added} students. {skipped} skipped (duplicates or empty)."})
 

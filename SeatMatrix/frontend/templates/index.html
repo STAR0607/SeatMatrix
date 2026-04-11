@@ -468,6 +468,7 @@
                   Print All Halls</button>
                 <button class="btn-secondary" onclick="exportCSV()" style="font-size:0.85rem;padding:7px 14px">📥 Export
                   CSV</button>
+                <button class="btn-primary" onclick="notifyEmail()" id="btn-notify-email-gen" style="background:linear-gradient(135deg, #10b981, #059669);border-color:#059669;font-size:0.85rem;padding:7px 14px">📧 Notify via Email</button>
               </div>
 
               <div id="seating-preview" class="seating-preview">
@@ -796,11 +797,7 @@
               </div>
             </div>
             <div class="form-row">
-              <div class="form-group">
-                <label>Subject</label>
-                <input type="text" id="student-subject" placeholder="e.g. Data Structures" />
-              </div>
-              <div class="form-group">
+              <div class="form-group" style="width:100%">
                 <label>Email Address</label>
                 <input type="email" id="student-email" placeholder="student@sasurie.ac.in" />
               </div>
@@ -843,7 +840,6 @@
                     <th>Reg. No.</th>
                     <th>Department</th>
                     <th>Year</th>
-                    <th>Subject</th>
                     <th>Email</th>
                     <th>Actions</th>
                   </tr>

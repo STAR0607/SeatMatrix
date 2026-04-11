@@ -1064,9 +1064,10 @@ async function loadArchives() {
           </div>
           ${hallsList ? `<div style="display:flex;flex-direction:column;gap:2px;margin-top:10px;margin-bottom:8px">${hallsList}</div>` : ''}
         </div>
-        <div class="archive-actions">
+        <div class="archive-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn-secondary" onclick="viewArrangement('${a.exam_id}','${safeName}')">View</button>
           <button class="btn-primary" onclick="printArchivedAllHalls('${a.exam_id}')" style="background:linear-gradient(135deg,#C62828,#D32F2F)">🖨️ Print</button>
+          <button class="btn-primary" onclick="notifyEmail('${a.exam_id}', this)" style="background:linear-gradient(135deg, #10b981, #059669);border-color:#059669;">📧 Notify via Email</button>
           <button class="btn-danger" onclick="deleteArchive('${a.id}','${safeName}')">🗑 Delete</button>
         </div>
       </div>`;
@@ -1488,20 +1489,21 @@ function printQRPoster() {
   w.document.close();
 }
 
-async function notifyEmail() {
-  if (!currentArrangementId) {
+async function notifyEmail(overrideId = null, btnEventSource = null) {
+  const targetId = overrideId || currentArrangementId;
+  if (!targetId) {
     toast('No arrangement selected', 'error');
     return;
   }
   
   if (!confirm('Are you sure you want to trigger automated emails for all students in this arrangement?')) return;
   
-  const btn = document.getElementById('btn-notify-email');
-  const orgText = btn ? btn.innerHTML : '📧 Notify via Email (n8n)';
+  const btn = btnEventSource || document.getElementById('btn-notify-email-gen') || document.getElementById('btn-notify-email');
+  const orgText = btn ? btn.innerHTML : '📧 Notify via Email';
   if(btn) { btn.innerHTML = '⏳ Sending...'; btn.disabled = true; }
   
   try {
-    const res = await fetch(`/api/notify-email/${currentArrangementId}`, { method: 'POST' });
+    const res = await fetch(`/api/notify-email/${targetId}`, { method: 'POST' });
     const data = await res.json();
     if (res.ok) {
       toast(`✅ Successfully triggered email workflow (${data.notified_count} students)`, 'success');
@@ -1995,7 +1997,6 @@ function renderStudentsTable(students) {
           <td><span style="font-family:monospace;background:#f3f4f6;padding:2px 7px;border-radius:4px;font-size:0.82rem">${s.register_number}</span></td>
           <td>${s.department || '–'}</td>
           <td>${s.year ? s.year + (s.year==1?'st':s.year==2?'nd':s.year==3?'rd':'th') + ' Year' : '–'}</td>
-          <td>${s.subject || '–'}</td>
           <td>${s.email || '–'}</td>
           <td style="display:flex;gap:6px">
             <button class="btn-secondary" style="padding:5px 10px;font-size:0.8rem" onclick='editStudent(${JSON.stringify(s)})'>Edit</button>
@@ -2044,7 +2045,6 @@ async function addStudent() {
         register_number: regno,
         department: document.getElementById('student-dept').value.trim(),
         year: document.getElementById('student-year').value,
-        subject: document.getElementById('student-subject').value.trim(),
         email: document.getElementById('student-email').value.trim()
       })
     });
