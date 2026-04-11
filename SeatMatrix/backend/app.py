@@ -1017,7 +1017,7 @@ def generate_seating():
                 (json.dumps(arrangement), datetime.now().isoformat(), existing_id))
         else:
             sid = str(uuid.uuid4())
-            conn.execute("INSERT OR REPLACE INTO seating VALUES (?,?,?,?)",
+            conn.execute("INSERT INTO seating (id, exam_id, data, created_at) VALUES (?,?,?,?)",
                 (sid, data.get("exam_id"), json.dumps(arrangement), datetime.now().isoformat()))
 
         conn.commit(); conn.close()

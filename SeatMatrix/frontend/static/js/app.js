@@ -121,6 +121,18 @@ async function doLogout() {
   showPage('login');
 }
 
+function togglePasswordVisibility() {
+  const pwdInput = document.getElementById('login-password');
+  const eyeIcon = document.getElementById('password-eye-icon');
+  if (pwdInput.type === 'password') {
+    pwdInput.type = 'text';
+    eyeIcon.textContent = '🙈';
+  } else {
+    pwdInput.type = 'password';
+    eyeIcon.textContent = '👁️';
+  }
+}
+
 // Allow Enter key on login
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('login-password')?.addEventListener('keydown', e => {
