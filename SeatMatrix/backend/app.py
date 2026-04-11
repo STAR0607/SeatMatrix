@@ -6,7 +6,7 @@ Version: 2.0 — Production Ready
 
 from flask import Flask, render_template, request, jsonify, send_file, session, make_response
 from flask_cors import CORS
-import json, re, csv, io, os, random, hashlib, uuid, sqlite3
+import json, re, csv, io, os, random, hashlib, uuid, sqlite3, requests
 from datetime import datetime
 from functools import wraps
 from dotenv import load_dotenv
@@ -114,7 +114,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS students (
         id TEXT PRIMARY KEY, student_name TEXT NOT NULL,
         register_number TEXT UNIQUE NOT NULL, department TEXT,
-        year TEXT, subject TEXT, created_at TEXT
+        year TEXT, subject TEXT, email TEXT, created_at TEXT
     );
     CREATE TABLE IF NOT EXISTS colleges (
         id TEXT PRIMARY KEY, name TEXT NOT NULL, address TEXT,
@@ -139,6 +139,12 @@ def init_db():
     else:
         # sqlite3 executescript handles multiple statements
         c.executescript(script)
+        
+    try:
+        c.execute("ALTER TABLE students ADD COLUMN email TEXT")
+        conn.commit()
+    except Exception:
+        pass
 
 
     if c.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
@@ -417,10 +423,11 @@ def students():
          "department":d.get("department","") or auto_dept,
          "year":str(d.get("year","")) or auto_year,
          "subject":d.get("subject",""),
+         "email":d.get("email",""),
          "created_at":datetime.now().isoformat()}
     try:
         conn = get_db()
-        conn.execute("INSERT INTO students VALUES (?,?,?,?,?,?,?)",tuple(s.values()))
+        conn.execute("INSERT INTO students VALUES (?,?,?,?,?,?,?,?)",tuple(s.values()))
         conn.commit(); conn.close(); return jsonify(s), 201
     except sqlite3.IntegrityError:
         return jsonify({"error":"Register number already exists"}),400
@@ -545,7 +552,7 @@ def bulk_import_students():
                 dept, year = decode_register_number(regno)
                 rows_to_insert.append({
                     "student_name": "—", "register_number": regno,
-                    "department": dept, "year": year, "subject": ""
+                    "department": dept, "year": year, "subject": "", "email": ""
                 })
         else:
             reader = csv.DictReader(io.StringIO(content))
@@ -561,6 +568,7 @@ def bulk_import_students():
                     "department": (row.get("Department") or row.get("department") or row.get("Dept") or "").strip() or auto_dept,
                     "year": (row.get("Year") or row.get("year") or "").strip() or auto_year,
                     "subject": (row.get("Subject") or row.get("subject") or "").strip(),
+                    "email": (row.get("Email") or row.get("email") or row.get("Email Address") or "").strip(),
                 })
 
     # ── EXCEL (.xlsx / .xls) ─────────────────────────
@@ -588,6 +596,7 @@ def bulk_import_students():
                 "department": gc(row, "department", "dept") or auto_dept,
                 "year": gc(row, "year") or auto_year,
                 "subject": gc(row, "subject"),
+                "email": gc(row, "email"),
             })
 
     # ── PDF — extract register numbers automatically ──
@@ -603,19 +612,19 @@ def bulk_import_students():
             dept, year = decode_register_number(r)
             rows_to_insert.append({
                 "student_name": "—", "register_number": r,
-                "department": dept, "year": year, "subject": ""
+                "department": dept, "year": year, "subject": "", "email": ""
             })
     else:
         return jsonify({"error": "Unsupported file type. Use CSV, XLSX, or PDF"}), 400
 
     # ── Insert into DB ──────────────────────────────
     conn = get_db()
-    for s in rows_to_insert:
-        if not s["register_number"]: skipped += 1; continue
+    for r in rows_to_insert:
+        if not r["register_number"]: skipped += 1; continue
         try:
-            conn.execute("INSERT INTO students VALUES (?,?,?,?,?,?,?)", (
-                str(uuid.uuid4()), s["student_name"], s["register_number"],
-                s["department"], s["year"], s["subject"], datetime.now().isoformat()))
+            conn.execute("INSERT INTO students VALUES (?,?,?,?,?,?,?,?)", (
+                str(uuid.uuid4()), r["student_name"], r["register_number"],
+                r["department"], r["year"], r["subject"], r["email"], datetime.now().isoformat()))
             added += 1
         except sqlite3.IntegrityError:
             skipped += 1
@@ -1390,6 +1399,64 @@ def print_all_halls(exam_id):
     resp = make_response(combined)
     resp.headers["Content-Type"] = "text/html; charset=utf-8"
     return resp
+
+# ── N8N EMAIL NOTIFICATION ───────────────────────────────────────────────────
+@app.route("/api/notify-email/<exam_id>", methods=["POST"])
+@login_required
+def notify_email(exam_id):
+    webhook_url = os.getenv("N8N_WEBHOOK_URL", "").strip()
+    if not webhook_url:
+        return jsonify({"error": "N8N_WEBHOOK_URL is not configured in the .env file. Please check the setup guide."}), 400
+
+    conn = get_db()
+    # Fetch arrangement data
+    row = conn.execute("SELECT * FROM seating WHERE exam_id=? ORDER BY created_at DESC LIMIT 1", (exam_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "No seating arrangement found for this exam."}), 404
+        
+    exam_row = conn.execute("SELECT * FROM exams WHERE id=?", (exam_id,)).fetchone()
+    exam_name = exam_row["name"] if exam_row else exam_id
+    
+    arr = json.loads(row["data"])
+    seats = arr.get("seats", [])
+    
+    # We need to map student emails from the students table
+    email_map = {}
+    students_db = conn.execute("SELECT register_number, email FROM students").fetchall()
+    for s in students_db:
+        if s["email"]:
+            email_map[s["register_number"]] = s["email"]
+    conn.close()
+
+    payload = []
+    for s in seats:
+        # Only notify students who have an email
+        em = email_map.get(s["student_reg"], "")
+        if em:
+            payload.append({
+                "exam_name": exam_name,
+                "student_name": s.get("student_name", ""),
+                "register_number": s["student_reg"],
+                "department": s.get("student_dept", ""),
+                "year": s.get("student_year", ""),
+                "subject": s.get("subject", ""),
+                "hall_name": s.get("room_name", ""),
+                "seat_grid": f"R{s.get('row', 0)}C{s.get('col', 0)}",
+                "email": em
+            })
+
+    if not payload:
+        return jsonify({"error": "No students with valid email addresses found in this arrangement."}), 400
+
+    try:
+        req = requests.post(webhook_url, json={"data": payload}, timeout=10)
+        if req.status_code >= 400:
+            return jsonify({"error": f"n8n webhook error: {req.status_code}"}), 400
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Failed to reach n8n webhook: {str(e)}"}), 500
+
+    return jsonify({"success": True, "notified_count": len(payload)})
 
 # ── MAIN ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":

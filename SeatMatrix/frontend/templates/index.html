@@ -497,6 +497,7 @@
             <div class="detail-actions">
               <button class="btn-secondary" onclick="printSingleHall()" id="btn-print-hall">🖨️ Print This Hall</button>
               <button class="btn-secondary" onclick="exportPDF()">📄 Export PDF</button>
+              <button class="btn-primary" onclick="notifyEmail()" id="btn-notify-email" style="background:linear-gradient(135deg, #10b981, #059669);border-color:#059669;">📧 Notify via Email (n8n)</button>
               <button class="btn-ghost" onclick="closeDetail()">✕ Close</button>
             </div>
           </div>
@@ -791,16 +792,22 @@
                 </select>
               </div>
             </div>
-            <div class="form-group">
-              <label>Subject</label>
-              <input type="text" id="student-subject" placeholder="e.g. Data Structures" />
+            <div class="form-row">
+              <div class="form-group">
+                <label>Subject</label>
+                <input type="text" id="student-subject" placeholder="e.g. Data Structures" />
+              </div>
+              <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="student-email" placeholder="student@sasurie.ac.in" />
+              </div>
             </div>
             <div class="form-group" style="margin-top:4px">
               <label>Bulk Import</label>
               <div class="upload-zone" style="padding:16px" onclick="document.getElementById('bulk-csv').click()">
                 <span class="upload-icon" style="font-size:1.4rem">📁</span>
                 <p style="font-size:0.85rem;font-weight:600">Upload CSV, Excel (.xlsx), or PDF</p>
-                <small style="color:#999">CSV/Excel: Name, Register Number, Department, Year, Subject<br />PDF: Register
+                <small style="color:#999">CSV/Excel: Name, Register Number, Department, Year, Subject, Email<br />PDF: Register
                   numbers extracted automatically</small>
               </div>
               <input type="file" id="bulk-csv" accept=".csv,.xlsx,.xls,.pdf" style="display:none"
@@ -834,6 +841,7 @@
                     <th>Department</th>
                     <th>Year</th>
                     <th>Subject</th>
+                    <th>Email</th>
                     <th>Actions</th>
                   </tr>
                 </thead>

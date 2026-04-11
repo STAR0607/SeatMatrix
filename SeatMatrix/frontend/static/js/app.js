@@ -1446,6 +1446,36 @@ function printGeneratedHalls() {
   window.open(`/api/print/${currentArrangementId}`, '_blank');
 }
 
+async function notifyEmail() {
+  if (!currentArrangementId) {
+    toast('No arrangement selected', 'error');
+    return;
+  }
+  
+  if (!confirm('Are you sure you want to trigger automated emails for all students in this arrangement?')) return;
+  
+  const btn = document.getElementById('btn-notify-email');
+  const orgText = btn ? btn.innerHTML : '📧 Notify via Email (n8n)';
+  if(btn) { btn.innerHTML = '⏳ Sending...'; btn.disabled = true; }
+  
+  try {
+    const res = await fetch(`/api/notify-email/${currentArrangementId}`, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) {
+      toast(`✅ Successfully triggered email workflow (${data.notified_count} students)`, 'success');
+    } else {
+      toast(data.error || 'Failed to send emails', 'error');
+      if(data.error && data.error.includes('N8N_WEBHOOK_URL')) {
+        alert(data.error);
+      }
+    }
+  } catch (e) {
+    toast('Network error triggering emails', 'error');
+  } finally {
+    if(btn) { btn.innerHTML = orgText; btn.disabled = false; }
+  }
+}
+
 async function exportPDF(filterRoomId = null) {
   if (!currentArrangementData) { toast('No arrangement to export', 'error'); return; }
 
@@ -1924,6 +1954,7 @@ function renderStudentsTable(students) {
           <td>${s.department || '–'}</td>
           <td>${s.year ? s.year + (s.year==1?'st':s.year==2?'nd':s.year==3?'rd':'th') + ' Year' : '–'}</td>
           <td>${s.subject || '–'}</td>
+          <td>${s.email || '–'}</td>
           <td style="display:flex;gap:6px">
             <button class="btn-secondary" style="padding:5px 10px;font-size:0.8rem" onclick='editStudent(${JSON.stringify(s)})'>Edit</button>
             <button class="btn-danger" onclick="deleteStudent('${s.id}')">Remove</button>
@@ -1971,13 +2002,14 @@ async function addStudent() {
         register_number: regno,
         department: document.getElementById('student-dept').value.trim(),
         year: document.getElementById('student-year').value,
-        subject: document.getElementById('student-subject').value.trim()
+        subject: document.getElementById('student-subject').value.trim(),
+        email: document.getElementById('student-email').value.trim()
       })
     });
     const data = await res.json();
     if (res.ok) {
       toast('Student added!', 'success');
-      ['student-name','student-regno','student-dept','student-subject'].forEach(id => {
+      ['student-name','student-regno','student-dept','student-subject', 'student-email'].forEach(id => {
         document.getElementById(id).value = '';
       });
       document.getElementById('student-year').value = '1';
