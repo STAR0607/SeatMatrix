@@ -1342,16 +1342,15 @@ tbody tr:last-child td { border-bottom: none; }
   text-transform: uppercase; margin-bottom: 12px;
 }
 .visual-seat-grid-wrap {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   overflow-x: auto;
   padding: 16px;
+  padding-bottom: 16px;
   background: white;
   border: 1px solid var(--grey-200);
   border-top: none;
-}
-.visual-seat-grid-wrap {
-  width: 100%;
-  overflow-x: auto;
-  padding-bottom: 5px;
 }
 .visual-seat-grid { display: grid; gap: 5px; width: max-content; }
 

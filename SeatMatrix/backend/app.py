@@ -565,12 +565,12 @@ def bulk_import_students():
                 # Auto-decode if dept/year missing
                 auto_dept, auto_year = decode_register_number(regno)
                 rows_to_insert.append({
-                    "student_name": (row.get("Name") or row.get("name") or row.get("Student Name") or "—").strip(),
+                    "student_name": str(row.get("Name") or row.get("name") or row.get("Student Name") or "—").strip(),
                     "register_number": regno,
-                    "department": (row.get("Department") or row.get("department") or row.get("Dept") or "").strip() or auto_dept,
-                    "year": (row.get("Year") or row.get("year") or "").strip() or auto_year,
-                    "subject": (row.get("Subject") or row.get("subject") or "").strip(),
-                    "email": (row.get("Email") or row.get("email") or row.get("Email Address") or "").strip(),
+                    "department": str(row.get("Department") or row.get("department") or row.get("Dept") or "").strip() or auto_dept,
+                    "year": str(row.get("Year") or row.get("year") or "").strip() or auto_year,
+                    "subject": str(row.get("Subject") or row.get("subject") or "").strip(),
+                    "email": str(row.get("Email") or row.get("email") or row.get("Email Address") or "").strip(),
                 })
 
     # ── EXCEL (.xlsx / .xls) ─────────────────────────
@@ -1488,8 +1488,35 @@ def notify_email(exam_id):
                 "subject": s.get("subject", ""),
                 "hall_name": s.get("room_name", ""),
                 "seat_grid": f"R{s.get('row', 0)}C{s.get('col', 0)}",
-                "email": em
+                "email": em,
+                "type": "student",
+                "pdf_url": ""
             })
+
+    # Add invigilators to payload
+    invigilators_list = arr.get("invigilators", [])
+    if invigilators_list:
+        room_ids_list = list(dict.fromkeys(s.get("room_id") for s in seats))
+        for i, rid in enumerate(room_ids_list):
+            inv = invigilators_list[i % len(invigilators_list)]
+            inv_em = inv.get("email")
+            if inv_em:
+                hall_name = next((s["room_name"] for s in seats if s["room_id"] == rid), "")
+                # We use request.host to construct a full absolute URL for Make.com to fetch the PDF
+                pdf_url = f"https://{request.host}/api/print/{exam_id}/{rid}"
+                payload.append({
+                    "email": inv_em,
+                    "student_name": inv.get("name", "Invigilator"),
+                    "exam_name": exam_name,
+                    "hall_name": hall_name,
+                    "pdf_url": pdf_url,
+                    "type": "invigilator",
+                    "subject": "Hall Invigilation",
+                    "seat_grid": "Invigilator Desk",
+                    "register_number": "STAFF",
+                    "department": inv.get("department", ""),
+                    "year": ""
+                })
 
     if not payload:
         return jsonify({"error": "No students with valid email addresses found in this arrangement."}), 400
