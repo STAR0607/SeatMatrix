@@ -48,6 +48,12 @@ function showSection(name) {
   if (name === 'users') loadUsers();
 }
 
+window.addEventListener('DOMContentLoaded', () => {
+  if (window.location.hash === '#search') {
+    showPage('student-finder');
+  }
+});
+
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
@@ -236,6 +242,75 @@ async function findSeat() {
           </div>
         </div>
       </div>
+      
+      ${r.hall_data ? (() => {
+        const room = r.hall_data.room;
+        if (!room) return '';
+        const maxRow = room.grid_rows || Math.max(...r.hall_data.seats.map(s => s.row || 1));
+        const maxCol = room.grid_cols || Math.max(...r.hall_data.seats.map(s => s.col || 1));
+        
+        let aislesRaw = room.aisle_after_col || [];
+        if (typeof aislesRaw === 'string') {
+          if (aislesRaw.startsWith('[')) { try { aislesRaw = JSON.parse(aislesRaw); } catch(e){ aislesRaw = []; } }
+          else aislesRaw = aislesRaw.split(',').map(x=>parseInt(x.trim())).filter(n=>n>0);
+        }
+        const aisles = Array.isArray(aislesRaw) ? aislesRaw.map(Number) : [];
+
+        const seatMap = {};
+        r.hall_data.seats.forEach(s => { seatMap[`${s.row}_${s.col}`] = s; });
+
+        let colTemplate = '';
+        for (let c = 1; c <= maxCol; c++) {
+          colTemplate += '64px ';
+          if (aisles.includes(c)) colTemplate += '20px ';
+        }
+
+        let gridHtml = '';
+        for (let r_row = 1; r_row <= maxRow; r_row++) {
+          for (let c = 1; c <= maxCol; c++) {
+            const s = seatMap[`${r_row}_${c}`];
+            if (!s) {
+              gridHtml += `<div class="vseat vsempty" style="opacity:0.3;filter:grayscale(100%)"><span style="color:#ccc">—</span></div>`;
+            } else {
+              const isTargetUser = s.register_number.toUpperCase() === query;
+              const cls = s.paper_set === 'B' ? 'vsb' : s.paper_set === 'C' ? 'vsc' : 'vsa';
+              
+              if (isTargetUser) {
+                gridHtml += `
+                <div class="vseat ${cls}" style="transform: scale(1.15); z-index: 10; box-shadow: 0 0 15px rgba(211,47,47,0.7); border: 2px solid #D32F2F;">
+                  <span class="vseat-num">${s.seat_number}</span>
+                  <span class="vseat-reg" style="font-weight:800; color:#B71C1C;">YOU</span>
+                  <span class="vseat-set">Set ${s.paper_set||'A'}</span>
+                </div>`;
+              } else {
+                gridHtml += `
+                <div class="vseat ${cls}" style="opacity:0.3; filter:grayscale(100%);">
+                  <span class="vseat-num">${s.seat_number}</span>
+                  <span class="vseat-reg">${s.register_number}</span>
+                  <span class="vseat-set">Set ${s.paper_set||'A'}</span>
+                </div>`;
+              }
+            }
+            if (aisles.includes(c)) {
+              gridHtml += `<div class="vaisle"></div>`;
+            }
+          }
+        }
+
+        return `
+        <div class="visual-room-block" style="margin-top:20px; border-radius:12px; background:white; padding:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
+          <h3 style="margin-bottom:15px; color:#1f2937; text-align:center;">Visual Seat Map Location</h3>
+          <div class="visual-blackboard" style="opacity:0.8">Blackboard / Front of Hall</div>
+          <div class="visual-seat-grid-wrap" style="overflow-x:auto;">
+            <div class="visual-seat-grid" style="grid-template-columns:${colTemplate.trim()}; gap:5px; margin:0 auto; padding-bottom:10px;">
+              ${gridHtml}
+            </div>
+          </div>
+          <div style="text-align:center; margin-top:15px; font-size:0.85rem; color:#666;">
+            Facing forwards towards the blackboard. Your seat is highlighted.
+          </div>
+        </div>`;
+      })() : ''}
     `).join('');
   } catch (e) {
     container.innerHTML = '<div class="no-results"><div class="nr-icon">⚠️</div><p>Error searching. Please try again.</p></div>';
@@ -1449,7 +1524,8 @@ function printGeneratedHalls() {
 
 function printQRPoster() {
   const rootUrl = window.location.origin;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(rootUrl)}`;
+  const searchUrl = rootUrl + '#search';
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(searchUrl)}`;
   
   const w = window.open('', '_blank');
   w.document.write(`
@@ -1481,7 +1557,7 @@ function printQRPoster() {
           <img src="${qrUrl}" alt="QR Code to Seat Finder" onload="setTimeout(() => window.print(), 300)" />
         </div>
         <div style="margin-top: 50px; color: #9ca3af; font-size: 1.1rem; font-weight: 600;">
-          Or visit directly on your browser: <b>${rootUrl}</b>
+          Or visit directly on your browser: <b>${searchUrl}</b>
         </div>
       </body>
     </html>

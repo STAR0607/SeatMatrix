@@ -632,7 +632,7 @@ def bulk_import_students():
                 continue
             
             try:
-                conn.execute("INSERT INTO students VALUES (?,?,?,?,?,?,?,?)", (
+                conn.execute("INSERT INTO students (id, student_name, register_number, department, year, subject, email, created_at) VALUES (?,?,?,?,?,?,?,?)", (
                     str(uuid.uuid4()), r["student_name"], r["register_number"],
                     r["department"], r["year"], "", r["email"], datetime.now().isoformat()))
                 existing.add(r["register_number"])
@@ -1230,6 +1230,22 @@ def find_seat():
                     nice_time = f"{h if h <= 12 else h-12}:{m} {'AM' if h < 12 else 'PM'}"
                 except: nice_time = raw_time
 
+            hall_id = seat.get("room_id")
+            hall_data = None
+            if hall_id:
+                room = None
+                if "rooms" in arr:
+                    for r in arr["rooms"]:
+                        if r["id"] == hall_id:
+                            room = r
+                            break
+                if room:
+                    room_seats = [s for s in arr.get("seats", []) if s.get("room_id") == hall_id]
+                    hall_data = {
+                        "room": room,
+                        "seats": room_seats
+                    }
+
             results.append({
                 "student_name": seat.get("student_name") or "—",
                 "register_number": seat.get("register_number"),
@@ -1245,6 +1261,7 @@ def find_seat():
                 "seat_number": seat.get("seat_number"),
                 "seat_label": seat.get("seat_label"),
                 "paper_set": seat.get("paper_set"),
+                "hall_data": hall_data
             })
     return jsonify(results[:10])
 
@@ -1440,10 +1457,15 @@ def notify_email(exam_id):
     
     # We need to map student emails from the students table
     email_map = {}
-    students_db = conn.execute("SELECT register_number, email FROM students").fetchall()
-    for s in students_db:
-        if s["email"]:
-            email_map[s["register_number"]] = s["email"]
+    try:
+        students_db = conn.execute("SELECT register_number, email FROM students").fetchall()
+        for s in students_db:
+            if dict(s).get("email"):
+                email_map[s["register_number"]] = s["email"]
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"error": "Database error: Email column might be missing. Please contact setup support."}), 400
     conn.close()
 
     payload = []
@@ -1471,7 +1493,7 @@ def notify_email(exam_id):
         if req.status_code >= 400:
             return jsonify({"error": f"n8n webhook error: {req.status_code}"}), 400
     except requests.exceptions.RequestException as e:
-        return jsonify({"error": f"Failed to reach n8n webhook: {str(e)}"}), 500
+        return jsonify({"error": f"Failed to reach n8n webhook: {str(e)}"}), 400
 
     return jsonify({"success": True, "notified_count": len(payload)})
 
