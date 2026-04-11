@@ -67,6 +67,7 @@ class DBWrapper:
     def execute(self, query, params=None):
         return self.cursor().execute(query, params)
     def commit(self): self.conn.commit()
+    def rollback(self): self.conn.rollback()
     def close(self): self.conn.close()
     def cursor(self):
         if self.is_pg:
@@ -144,7 +145,7 @@ def init_db():
         c.execute("ALTER TABLE students ADD COLUMN email TEXT")
         conn.commit()
     except Exception:
-        pass
+        conn.rollback()
 
 
     if c.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
