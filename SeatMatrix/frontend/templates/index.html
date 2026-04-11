@@ -202,7 +202,10 @@
             <h1>Dashboard</h1>
             <p id="dashboard-welcome">Welcome back! Here's your overview.</p>
           </div>
-          <button class="btn-primary" onclick="showSection('generate')">⚡ Generate Seating</button>
+          <div style="display:flex; gap:10px;">
+            <button class="btn-secondary" onclick="printQRPoster()" style="font-size:0.85rem; padding: 7px 12px; background:white; color:#333; border: 1.5px solid #e0e0e0; display:flex; align-items:center; gap:6px;">📱 Print Notice QR</button>
+            <button class="btn-primary" onclick="showSection('generate')">⚡ Generate Seating</button>
+          </div>
         </div>
         <div class="stats-grid" id="stats-grid">
           <div class="stat-card">

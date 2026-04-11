@@ -1446,6 +1446,48 @@ function printGeneratedHalls() {
   window.open(`/api/print/${currentArrangementId}`, '_blank');
 }
 
+function printQRPoster() {
+  const rootUrl = window.location.origin;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(rootUrl)}`;
+  
+  const w = window.open('', '_blank');
+  w.document.write(`
+    <html>
+      <head>
+        <title>SeatMatrix QR Poster</title>
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+        <style>
+          body { font-family: 'DM Sans', sans-serif; text-align: center; padding: 60px 40px; margin: 0; color: #1f2937; }
+          h1 { font-family: 'Playfair Display', serif; font-size: 3.5rem; color: #B71C1C; margin-bottom: 5px; }
+          .subtitle { font-size: 1.5rem; color: #4b5563; margin-bottom: 50px; font-weight: 600; }
+          .instructions { font-size: 1.3rem; max-width: 650px; margin: 0 auto 50px; line-height: 1.6; background: #fffbeb; padding: 25px; border-radius: 12px; border: 1px solid #fef3c7; }
+          .qr-box { padding: 30px; border: 4px dashed #e5e7eb; border-radius: 24px; display: inline-block; background: white; }
+          img { width: 400px; height: 400px; }
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>SeatMatrix</h1>
+        <div class="subtitle">Sasurie College of Engineering</div>
+        <div class="instructions">
+          <strong>📱 Find your exam seat instantly!</strong><br><br>
+          We have upgraded to a digital seating system. <br>
+          Scan the QR code below using your mobile camera and enter your Register Number to securely find your assigned Hall and Seat.
+        </div>
+        <div class="qr-box">
+          <img src="${qrUrl}" alt="QR Code to Seat Finder" onload="setTimeout(() => window.print(), 300)" />
+        </div>
+        <div style="margin-top: 50px; color: #9ca3af; font-size: 1.1rem; font-weight: 600;">
+          Or visit directly on your browser: <b>${rootUrl}</b>
+        </div>
+      </body>
+    </html>
+  `);
+  w.document.close();
+}
+
 async function notifyEmail() {
   if (!currentArrangementId) {
     toast('No arrangement selected', 'error');
