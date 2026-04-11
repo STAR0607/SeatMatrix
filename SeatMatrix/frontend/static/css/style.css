@@ -624,11 +624,18 @@ tbody tr:last-child td { border-bottom: none; }
 @media (max-width: 900px) {
   /* Login */
   .login-split { grid-template-columns: 1fr; min-height: 100vh; }
-  .login-brand { display: none; }
+  .login-brand {
+    display: flex;
+    min-height: auto;
+    padding: 40px 20px 0;
+    gap: 16px;
+  }
+  .brand-logo-wrap img { width: 140px; }
+  .brand-title { font-size: 2rem; }
   .login-form-wrap {
-    padding: 40px 24px; min-height: 100vh;
-    justify-content: center;
-    background: linear-gradient(160deg, #B71C1C 0%, #D32F2F 50%, #EF5350 100%);
+    padding: 30px 24px 40px; min-height: auto;
+    justify-content: flex-start;
+    background: transparent;
     border-radius: 0;
     box-shadow: none;
   }

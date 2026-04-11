@@ -74,7 +74,7 @@ function setDashboardWelcome(name, role) {
   const el = document.getElementById('dashboard-welcome');
   if (!el) return;
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const greeting = hour < 12 ? 'Good morning 🌅' : hour < 17 ? 'Good afternoon ☀️' : 'Good evening 🌙';
   el.innerHTML = `${greeting}, <strong>${name}</strong>! Here's your overview.`;
 }
 

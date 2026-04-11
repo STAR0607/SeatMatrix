@@ -927,115 +927,116 @@ def anti_malpractice_seating(students, rooms, settings, exam=None):
 @app.route("/api/generate-seating", methods=["POST"])
 @login_required
 def generate_seating():
-    data = request.json
-    conn = get_db()
-    exam = row_to_dict(conn.execute("SELECT * FROM exams WHERE id=?",(data.get("exam_id"),)).fetchone())
-    if not exam: conn.close(); return jsonify({"error":"Exam not found"}),404
-    # Parse year_subject_map from JSON string
-    raw_ysm = exam.get("year_subject_map", "{}")
-    try: exam["year_subject_map"] = json.loads(raw_ysm) if isinstance(raw_ysm, str) else raw_ysm
-    except: exam["year_subject_map"] = {}
+    try:
+        data = request.json
+        conn = get_db()
+        exam = row_to_dict(conn.execute("SELECT * FROM exams WHERE id=?",(data.get("exam_id"),)).fetchone())
+        if not exam: conn.close(); return jsonify({"error":"Exam not found"}),404
+        
+        raw_ysm = exam.get("year_subject_map", "{}")
+        try: exam["year_subject_map"] = json.loads(raw_ysm) if isinstance(raw_ysm, str) else raw_ysm
+        except: exam["year_subject_map"] = {}
 
-    # Also accept year_subject_code_map from request (passed by frontend)
-    exam["year_subject_code_map"] = data.get("year_subject_code_map", {})
+        exam["year_subject_code_map"] = data.get("year_subject_code_map", {})
 
-    rooms = []
-    invigilators = []
-    
-    # Handle append_mode: filter out rooms already in previous arrangement
-    existing_room_ids = set()
-    if data.get("append_mode"):
-        existing_row = conn.execute("SELECT data FROM seating WHERE exam_id=? ORDER BY created_at DESC LIMIT 1", (data.get("exam_id"),)).fetchone()
-        if existing_row:
-            existing_data = json.loads(existing_row["data"])
-            existing_room_ids = {r["id"] for r in existing_data.get("rooms", [])}
+        rooms = []
+        invigilators = []
+        
+        existing_room_ids = set()
+        if data.get("append_mode"):
+            existing_row = conn.execute("SELECT data FROM seating WHERE exam_id=? ORDER BY created_at DESC LIMIT 1", (data.get("exam_id"),)).fetchone()
+            if existing_row:
+                existing_data = json.loads(existing_row["data"])
+                existing_room_ids = {r["id"] for r in existing_data.get("rooms", [])}
 
-    for rid in data.get("room_ids",[]):
-        if rid in existing_room_ids: continue
-        r = row_to_dict(conn.execute("SELECT * FROM rooms WHERE id=?",(rid,)).fetchone())
-        if r: r["blocked_seats"] = json.loads(r.get("blocked_seats") or "[]"); rooms.append(r)
-    
-    for iid in data.get("invigilator_ids",[]):
-        s = row_to_dict(conn.execute("SELECT * FROM staff WHERE id=?",(iid,)).fetchone())
-        if s: invigilators.append(s)
+        for rid in data.get("room_ids",[]):
+            if rid in existing_room_ids: continue
+            r = row_to_dict(conn.execute("SELECT * FROM rooms WHERE id=?",(rid,)).fetchone())
+            if r: r["blocked_seats"] = json.loads(r.get("blocked_seats") or "[]"); rooms.append(r)
+        
+        for iid in data.get("invigilator_ids",[]):
+            s = row_to_dict(conn.execute("SELECT * FROM staff WHERE id=?",(iid,)).fetchone())
+            if s: invigilators.append(s)
 
-    if not rooms: conn.close(); return jsonify({"error":"No NEW rooms selected for generation" if data.get("append_mode") else "No valid rooms selected"}),400
+        if not rooms: conn.close(); return jsonify({"error":"No NEW rooms selected for generation" if data.get("append_mode") else "No valid rooms selected"}),400
 
-    students = data.get("students",[])
-    if not students: conn.close(); return jsonify({"error":"No students provided"}),400
+        students = data.get("students",[])
+        if not students: conn.close(); return jsonify({"error":"No students provided"}),400
 
-    # Calculate total capacity across all selected rooms
-    total_capacity = sum(
-        len([(r2,c2) for r2 in range(1, rm.get("grid_rows",5)+1)
-                     for c2 in range(1, rm.get("grid_cols",8)+1)
-                     if f"R{r2}C{c2}" not in (rm.get("blocked_seats") or [])])
-        for rm in rooms
-    )
-    total_capacity = min(total_capacity, sum(rm.get("capacity", 40) for rm in rooms))
+        total_capacity = sum(
+            len([(r2,c2) for r2 in range(1, rm.get("grid_rows",5)+1)
+                         for c2 in range(1, rm.get("grid_cols",8)+1)
+                         if f"R{r2}C{c2}" not in (rm.get("blocked_seats") or [])])
+            for rm in rooms
+        )
+        total_capacity = min(total_capacity, sum(rm.get("capacity", 40) for rm in rooms))
 
-    # Only seat as many students as the halls can hold
-    students_to_seat = students[:total_capacity]
-    remaining_students = students[total_capacity:]
+        students_to_seat = students[:total_capacity]
+        remaining_students = students[total_capacity:]
 
-    seats = anti_malpractice_seating(students_to_seat, rooms, data.get("settings",{}), exam=exam)
+        seats = anti_malpractice_seating(students_to_seat, rooms, data.get("settings",{}), exam=exam)
 
-    # Assign invigilators to seats permanently
-    room_ids_ordered = list(dict.fromkeys(rm["id"] for rm in rooms))
-    for i, rid in enumerate(room_ids_ordered):
-        inv_name = invigilators[i % len(invigilators)]["name"] if invigilators else "TBD"
-        for s in seats:
-            if s.get("room_id") == rid:
-                s["invigilator"] = inv_name
+        room_ids_ordered = list(dict.fromkeys(rm["id"] for rm in rooms))
+        for i, rid in enumerate(room_ids_ordered):
+            inv_name = invigilators[i % len(invigilators)]["name"] if invigilators else "TBD"
+            for s in seats:
+                if s.get("room_id") == rid:
+                    s["invigilator"] = inv_name
 
-    arrangement = {
-        "exam_id": data.get("exam_id"),
-        "exam": exam,
-        "rooms": rooms,
-        "invigilators": invigilators,
-        "seats": seats,
-        "settings": data.get("settings",{}),
-        "generated_at": datetime.now().isoformat(),
-        "total_students_provided": len(students),
-        "total_seated": len(seats),
-        "total_remaining": len(remaining_students),
-    }
+        arrangement = {
+            "exam_id": data.get("exam_id"),
+            "exam": exam,
+            "rooms": rooms,
+            "invigilators": invigilators,
+            "seats": seats,
+            "settings": data.get("settings",{}),
+            "generated_at": datetime.now().isoformat(),
+            "total_students_provided": len(students),
+            "total_seated": len(seats),
+            "total_remaining": len(remaining_students),
+        }
 
-    # Store arrangement (append mode — keeps previous halls, adds new ones)
-    existing_row = conn.execute(
-        "SELECT * FROM seating WHERE exam_id=? ORDER BY created_at DESC LIMIT 1",
-        (data.get("exam_id"),)).fetchone()
+        existing_row = conn.execute(
+            "SELECT * FROM seating WHERE exam_id=? ORDER BY created_at DESC LIMIT 1",
+            (data.get("exam_id"),)).fetchone()
 
-    if existing_row and data.get("append_mode"):
-        # Merge with existing arrangement
-        existing = json.loads(existing_row["data"])
-        existing_seats = existing.get("seats", [])
-        # Re-number seats from where we left off
-        offset = len(existing_seats)
-        for s in seats:
-            s["seat_number"] += offset
-        merged_seats = existing_seats + seats
-        merged_rooms = existing.get("rooms", []) + [r for r in rooms if r["id"] not in {x["id"] for x in existing.get("rooms",[])}]
-        arrangement["seats"] = merged_seats
-        arrangement["rooms"] = merged_rooms
-        arrangement["total_seated"] = len(merged_seats)
-        existing_id = existing_row["id"]
-        conn.execute("UPDATE seating SET data=?, created_at=? WHERE id=?",
-            (json.dumps(arrangement), datetime.now().isoformat(), existing_id))
-    else:
-        sid = str(uuid.uuid4())
-        conn.execute("INSERT OR REPLACE INTO seating VALUES (?,?,?,?)",
-            (sid, data.get("exam_id"), json.dumps(arrangement), datetime.now().isoformat()))
+        if existing_row and data.get("append_mode"):
+            existing = json.loads(existing_row["data"])
+            existing_seats = existing.get("seats", [])
+            offset = len(existing_seats)
+            for s in seats:
+                s["seat_number"] += offset
+            merged_seats = existing_seats + seats
+            merged_rooms = existing.get("rooms", []) + [r for r in rooms if r["id"] not in {x["id"] for x in existing.get("rooms",[])}]
+            arrangement["seats"] = merged_seats
+            arrangement["rooms"] = merged_rooms
+            arrangement["total_seated"] = len(merged_seats)
+            arrangement["total_remaining"] = len(remaining_students)
+            existing_id = existing_row["id"]
+            conn.execute("UPDATE seating SET data=?, created_at=? WHERE id=?",
+                (json.dumps(arrangement), datetime.now().isoformat(), existing_id))
+        else:
+            sid = str(uuid.uuid4())
+            conn.execute("INSERT OR REPLACE INTO seating VALUES (?,?,?,?)",
+                (sid, data.get("exam_id"), json.dumps(arrangement), datetime.now().isoformat()))
 
-    conn.commit(); conn.close()
+        conn.commit(); conn.close()
 
-    return jsonify({
-        "success": True,
-        "arrangement": arrangement,
-        "total_seated": len(seats),
-        "total_remaining": len(remaining_students),
-        "remaining_students": remaining_students,  # send back so frontend can use for next hall
-        "message": f"Seated {len(seats)} students in {len(rooms)} hall(s). {len(remaining_students)} students remaining."
-    })
+        return jsonify({
+            "success": True,
+            "arrangement": arrangement,
+            "total_seated": len(seats),
+            "total_remaining": len(remaining_students),
+            "remaining_students": remaining_students,
+            "message": f"Seated {len(seats)} students in {len(rooms)} hall(s). {len(remaining_students)} students remaining."
+        })
+
+    except Exception as e:
+        import traceback
+        trace = traceback.format_exc()
+        try: conn.close()
+        except: pass
+        return jsonify({"error": f"Internal Server Error: {str(e)}", "trace": trace}), 500
 
 
 @app.route("/api/seating/<exam_id>")
