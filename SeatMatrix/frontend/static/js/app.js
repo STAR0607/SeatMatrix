@@ -123,13 +123,16 @@ async function doLogout() {
 
 function togglePasswordVisibility() {
   const pwdInput = document.getElementById('login-password');
-  const eyeIcon = document.getElementById('password-eye-icon');
+  const eyeOn = document.getElementById('eye-on-svg');
+  const eyeOff = document.getElementById('eye-off-svg');
   if (pwdInput.type === 'password') {
     pwdInput.type = 'text';
-    eyeIcon.textContent = '🙈';
+    if (eyeOn) eyeOn.style.display = 'block';
+    if (eyeOff) eyeOff.style.display = 'none';
   } else {
     pwdInput.type = 'password';
-    eyeIcon.textContent = '👁️';
+    if (eyeOn) eyeOn.style.display = 'none';
+    if (eyeOff) eyeOff.style.display = 'block';
   }
 }
 
