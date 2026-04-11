@@ -1416,7 +1416,29 @@ function exportCSVById(id) {
 }
 
 function exportSpecificPDF(examId, roomId) {
-  exportPDF(roomId);
+  const cleanId = String(examId).trim().replace(/\s+/g, '-');
+  if (!currentArrangementData || currentArrangementData.exam_id !== examId) {
+    // Show loading state
+    const btn = event?.currentTarget;
+    const oldText = btn ? btn.textContent : '';
+    if (btn) btn.textContent = '⏳ Loading...';
+    
+    fetch(`/api/seating/${cleanId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+        currentArrangementData = data;
+        currentArrangementId = cleanId;
+        if (btn) btn.textContent = oldText;
+        exportPDF(roomId);
+      })
+      .catch(e => {
+        if (btn) btn.textContent = oldText;
+        toast('Failed to load data for PDF', 'error');
+      });
+  } else {
+    exportPDF(roomId);
+  }
 }
 
 function printGeneratedHalls() {
