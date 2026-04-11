@@ -1534,14 +1534,18 @@ function printQRPoster() {
         <title>SeatMatrix QR Poster</title>
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
         <style>
-          body { font-family: 'DM Sans', sans-serif; text-align: center; padding: 60px 40px; margin: 0; color: #1f2937; }
-          h1 { font-family: 'Playfair Display', serif; font-size: 3.5rem; color: #B71C1C; margin-bottom: 5px; }
-          .subtitle { font-size: 1.5rem; color: #4b5563; margin-bottom: 50px; font-weight: 600; }
-          .instructions { font-size: 1.3rem; max-width: 650px; margin: 0 auto 50px; line-height: 1.6; background: #fffbeb; padding: 25px; border-radius: 12px; border: 1px solid #fef3c7; }
-          .qr-box { padding: 30px; border: 4px dashed #e5e7eb; border-radius: 24px; display: inline-block; background: white; }
-          img { width: 400px; height: 400px; }
+          @page { margin: 0; size: A4 portrait; }
+          body { font-family: 'DM Sans', sans-serif; text-align: center; padding: 0; margin: 0; color: #1f2937; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: white; }
+          h1 { font-family: 'Playfair Display', serif; font-size: 4rem; color: #B71C1C; margin: 0 0 10px 0; }
+          .subtitle { font-size: 1.8rem; color: #4b5563; margin-bottom: 40px; font-weight: 600; }
+          .instructions { font-size: 1.4rem; width: 80%; max-width: 650px; margin: 0 auto 50px; line-height: 1.6; background: #fffbeb; padding: 25px; border-radius: 12px; border: 2px solid #fef3c7; }
+          .qr-box { padding: 40px; border: 4px dashed #e5e7eb; border-radius: 30px; display: inline-block; background: white; }
+          .qr-box img { width: 450px; height: 450px; display: block; }
+          .url-text { margin-top: 40px; color: #6b7280; font-size: 1.3rem; font-weight: 700; word-break: break-all; width: 80%; }
           @media print {
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body { padding: 0; background: white; }
+            .instructions { background: transparent !important; border: 2px solid #000; color: #000; }
+            .url-text { color: #000; }
           }
         </style>
       </head>

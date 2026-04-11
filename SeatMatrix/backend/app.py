@@ -207,7 +207,8 @@ def rows_to_list(rows): return [dict(r) for r in rows]
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if "user" not in session: return jsonify({"error":"Unauthorized"}),401
+        if "user" not in session: 
+            return jsonify({"error": "Unauthorized"}), 401
         return f(*args, **kwargs)
     return decorated
 
@@ -621,28 +622,31 @@ def bulk_import_students():
     # ── Insert into DB ──────────────────────────────
     conn = get_db()
     try:
-        # Pre-fetch existing register numbers to prevent postgres throwing transaction-aborting exceptions inside loop
         existing = {row[0] for row in conn.execute("SELECT register_number FROM students").fetchall()}
+        
         for r in rows_to_insert:
-            if not r["register_number"]: 
-                skipped += 1
-                continue
-            if r["register_number"] in existing:
+            if not r["register_number"] or r["register_number"] in existing:
                 skipped += 1
                 continue
             
             try:
-                conn.execute("INSERT INTO students (id, student_name, register_number, department, year, subject, email, created_at) VALUES (?,?,?,?,?,?,?,?)", (
-                    str(uuid.uuid4()), r["student_name"], r["register_number"],
-                    r["department"], r["year"], "", r["email"], datetime.now().isoformat()))
+                if conn.is_pg: conn.execute("SAVEPOINT batch_sp")
+                conn.execute(
+                    "INSERT INTO students (id, student_name, register_number, department, year, subject, email, created_at) VALUES (?,?,?,?,?,?,?,?)",
+                    (str(uuid.uuid4()), r["student_name"], r["register_number"], r["department"], r["year"], "", r.get("email",""), datetime.now().isoformat())
+                )
+                if conn.is_pg: conn.execute("RELEASE SAVEPOINT batch_sp")
                 existing.add(r["register_number"])
                 added += 1
-            except Exception:
+            except Exception as inner_e:
+                if conn.is_pg: conn.execute("ROLLBACK TO SAVEPOINT batch_sp")
                 skipped += 1
+                app.logger.error(f"Failed to insert raw student: {str(inner_e)}")
+        
         conn.commit()
     except Exception as e:
         conn.rollback()
-        return jsonify({"error": f"Import failed: {str(e)}"}), 500
+        return jsonify({"error": f"Import failed ({type(e).__name__}): {str(e)}"}), 500
     finally:
         conn.close()
 
