@@ -1003,6 +1003,7 @@ async function parseStudentFile(file) {
             department: obj['department'] || obj['dept'] || dept,
             year: obj['year'] || year,
             subject: obj['subject'] || '',
+            email: obj['email'] || obj['email address'] || obj['mail'] || ''
           });
         }
       }

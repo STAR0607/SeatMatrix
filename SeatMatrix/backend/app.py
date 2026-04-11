@@ -940,6 +940,7 @@ def anti_malpractice_seating(students, rooms, settings, exam=None):
                 "seat_label": label, "row": r, "col": c,
                 "student_name": stu.get("Name") or stu.get("student_name", ""),
                 "register_number": stu.get("Register Number") or stu.get("register_number", ""),
+                "email": stu.get("email", ""),
                 "department": stu.get("Department") or stu.get("department", ""),
                 "year": student_year,
                 "subject": subject,
@@ -1474,15 +1475,16 @@ def notify_email(exam_id):
 
     payload = []
     for s in seats:
-        # Only notify students who have an email
-        em = email_map.get(s["student_reg"], "")
-        if em:
+        # Only notify students who have an email natively in arrangement payload or fetched from db
+        reg = s.get("register_number", "")
+        em = s.get("email") or email_map.get(reg, "")
+        if em and reg:
             payload.append({
                 "exam_name": exam_name,
                 "student_name": s.get("student_name", ""),
-                "register_number": s["student_reg"],
-                "department": s.get("student_dept", ""),
-                "year": s.get("student_year", ""),
+                "register_number": reg,
+                "department": s.get("department", ""),
+                "year": s.get("year", ""),
                 "subject": s.get("subject", ""),
                 "hall_name": s.get("room_name", ""),
                 "seat_grid": f"R{s.get('row', 0)}C{s.get('col', 0)}",
