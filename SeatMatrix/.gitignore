@@ -42,3 +42,7 @@ brain/
 logs/
 artifacts/
 *.log
+database/sasurie_students.csv
+LIVE_DEPLOYMENT_GUIDE.md
+NOTIFICATIONS.md
+SUPABASE_GUIDE.md
