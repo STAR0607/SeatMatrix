@@ -298,11 +298,11 @@ async function findSeat() {
         }
 
         return `
-        <div class="visual-room-block" style="margin-top:20px; border-radius:12px; background:white; padding:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
-          <h3 style="margin-bottom:15px; color:#1f2937; text-align:center;">Visual Seat Map Location</h3>
-          <div class="visual-blackboard" style="opacity:0.8">Blackboard / Front of Hall</div>
-          <div class="visual-seat-grid-wrap" style="overflow-x:auto;">
-            <div class="visual-seat-grid" style="grid-template-columns:${colTemplate.trim()}; gap:5px; margin:0 auto; padding-bottom:10px;">
+        <div class="visual-room-block" style="margin-top:20px; border-radius:12px; background:white; padding:15px; box-shadow:0 4px 15px rgba(0,0,0,0.05); max-width:100%; box-sizing:border-box; overflow:hidden;">
+          <h3 style="margin-bottom:15px; color:#1f2937; text-align:center; font-size:1.1rem; width:100%;">Visual Seat Map Location</h3>
+          <div class="visual-blackboard" style="opacity:0.8; font-size:0.75rem;">Blackboard / Front of Hall</div>
+          <div class="visual-seat-grid-wrap" style="overflow-x:auto; width:100%; max-width:100%; -webkit-overflow-scrolling:touch;">
+            <div class="visual-seat-grid" style="grid-template-columns:${colTemplate.trim()}; gap:5px; margin:0 auto; padding-bottom:10px; width:max-content;">
               ${gridHtml}
             </div>
           </div>
@@ -1589,9 +1589,14 @@ async function notifyEmail(overrideId = null, btnEventSource = null) {
     if (res.ok) {
       toast(`✅ Successfully triggered email workflow (${data.notified_count} students)`, 'success');
     } else {
-      toast(data.error || 'Failed to send emails', 'error');
-      if(data.error && data.error.includes('N8N_WEBHOOK_URL')) {
-        alert(data.error);
+      if (res.status === 401) {
+        toast('❌ Unauthorized: Your session has expired. Please log in again.', 'error');
+        setTimeout(() => location.reload(), 2000);
+      } else {
+        toast(data.error || 'Failed to send emails', 'error');
+        if(data.error && data.error.includes('N8N_WEBHOOK_URL')) {
+          alert(data.error);
+        }
       }
     }
   } catch (e) {

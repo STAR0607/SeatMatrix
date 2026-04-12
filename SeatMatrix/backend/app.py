@@ -37,7 +37,8 @@ load_dotenv()
 app = Flask(__name__, 
             template_folder='../frontend/templates', 
             static_folder='../frontend/static')
-app.secret_key = os.getenv("SECRET_KEY", "seatmatrix-secret-change-me")
+app.secret_key = os.getenv("SECRET_KEY", "sasurie-sm-prod-safety-key-12345")
+# PRO TIP: Set SECRET_KEY in Render Environment Variables for maximum session security.
 CORS(app)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "database", "seatmatrix.db")
@@ -565,7 +566,7 @@ def bulk_import_students():
                 # Auto-decode if dept/year missing
                 auto_dept, auto_year = decode_register_number(regno)
                 rows_to_insert.append({
-                    "student_name": str(row.get("Name") or row.get("name") or row.get("Student Name") or "—").strip(),
+                    "student_name": str(row.get("Name") or row.get("name") or row.get("Student Name") or "—").strip() if row.get("Name") or row.get("name") or row.get("Student Name") else "—",
                     "register_number": regno,
                     "department": str(row.get("Department") or row.get("department") or row.get("Dept") or "").strip() or auto_dept,
                     "year": str(row.get("Year") or row.get("year") or "").strip() or auto_year,
