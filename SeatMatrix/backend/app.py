@@ -55,8 +55,12 @@ class CursorWrapper:
         if self.is_pg:
             query = query.replace('?', '%s')
             self.cur.execute(query, params or ())
-            return self # Enable chaining
+            return self
         return self.cur.execute(query, params or ())
+    def executemany(self, query, params_list):
+        if self.is_pg:
+            query = query.replace('?', '%s')
+        return self.cur.executemany(query, params_list)
     def fetchone(self): return self.cur.fetchone()
     def fetchall(self): return self.cur.fetchall()
     def __getattr__(self, name): return getattr(self.cur, name)
@@ -697,39 +701,30 @@ def bulk_import_students():
 
     # ── Insert into DB ──────────────────────────────
     conn = get_db()
-    c = conn.cursor()
     try:
-        # Pre-fetch existing register numbers to avoid O(n^2) behavior
-        existing_rows = conn.execute("SELECT register_number FROM students").fetchall()
-        existing = {row[0] for row in existing_rows}
+        cur = conn.cursor()
+        existing = {row[0] for row in cur.execute("SELECT register_number FROM students").fetchall()}
         
-        # Current time and fixed values
-        now = datetime.now().isoformat()
-        
-        # Identify non-duplicate students to add
-        valid_rows = []
+        batch_data = []
+        now_str = datetime.now().isoformat()
         for r in rows_to_insert:
             if not r["register_number"] or r["register_number"] in existing:
                 skipped += 1
                 continue
             
-            # Prepare data tuple for insert
-            valid_rows.append((
+            # id, student_name, register_number, department, year, subject, email, created_at
+            batch_data.append((
                 str(uuid.uuid4()), r["student_name"], r["register_number"], 
-                r["department"], r["year"], "", r.get("email",""), now
+                r["department"], r["year"], "", r.get("email",""), now_str
             ))
             existing.add(r["register_number"])
-        
-        # Perform Batch Insertion
-        if valid_rows:
-            query = "INSERT INTO students (id, student_name, register_number, department, year, subject, email, created_at) VALUES (?,?,?,?,?,?,?,?)"
-            if conn.is_pg:
-                query = query.replace('?', '%s')
-            
-            # Use executemany for high performance
-            c.executemany(query, valid_rows)
-            added = len(valid_rows)
-        
+            added += 1
+
+        if batch_data:
+            cur.executemany(
+                "INSERT INTO students (id, student_name, register_number, department, year, subject, email, created_at) VALUES (?,?,?,?,?,?,?,?)",
+                batch_data
+            )
         conn.commit()
     except Exception as e:
         conn.rollback()
