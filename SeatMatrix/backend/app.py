@@ -1409,10 +1409,18 @@ def export_csv(exam_id):
 # ── PRINT EXPORT ──────────────────────────────────────────────────────────────
 @app.route("/api/print/<exam_id>/<room_id>")
 def print_hall(exam_id, room_id):
+    exam_id = exam_id.strip()
+    room_id = room_id.strip()
+    app.logger.info(f"Printing hall - Exam ID: {exam_id}, Room ID: {room_id}")
+    
     conn = get_db()
+    # Fetch arrangement data
     row = conn.execute("SELECT * FROM seating WHERE exam_id=? ORDER BY created_at DESC LIMIT 1",(exam_id,)).fetchone()
     conn.close()
-    if not row: return "No seating arrangement found", 404
+    
+    if not row:
+        app.logger.error(f"Seating fail: No arrangement found for Exam ID {exam_id}")
+        return "No seating arrangement found", 404
 
     arr = json.loads(row["data"])
     exam = arr.get("exam", {})
@@ -1557,6 +1565,8 @@ def print_all_halls(exam_id):
 @app.route("/api/notify-email/<exam_id>", methods=["POST"])
 @login_required
 def notify_email(exam_id):
+    exam_id = exam_id.strip()
+    app.logger.info(f"Notification triggered for Exam ID: {exam_id}")
     webhook_url = os.getenv("N8N_WEBHOOK_URL", "").strip()
     if not webhook_url:
         return jsonify({"error": "N8N_WEBHOOK_URL is not configured in the .env file. Please check the setup guide."}), 400
