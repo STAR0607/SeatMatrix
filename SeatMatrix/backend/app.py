@@ -164,6 +164,10 @@ def init_db():
     else:
         c.execute("INSERT INTO users VALUES (?,?,?,?)", (admin_user, hashed_pass, "admin", "Administrator"))
 
+    # CLEANUP: If a custom admin is set (like 'Examcell'), remove the old 'admin' account to avoid confusion
+    if admin_user != "admin":
+        c.execute("DELETE FROM users WHERE username='admin'")
+
     # Optional: Seed staff1 if no users at all
     if c.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 1:
         c.execute("INSERT INTO users VALUES (?,?,?,?)", ("staff1", 
@@ -733,11 +737,15 @@ def bulk_import_students():
             added += 1
 
         if batch_data:
-            app.logger.info(f"Executing batch insert for {len(batch_data)} students...")
-            cur.executemany(
-                "INSERT INTO students (id, student_name, register_number, department, year, subject, email, created_at) VALUES (?,?,?,?,?,?,?,?)",
-                batch_data
-            )
+            app.logger.info(f"Executing chunked insert for {len(batch_data)} students...")
+            # Chunk the insert to avoid worker timeouts and memory issues
+            CHUNK_SIZE = 200
+            for i in range(0, len(batch_data), CHUNK_SIZE):
+                chunk = batch_data[i : i + CHUNK_SIZE]
+                cur.executemany(
+                    "INSERT INTO students (id, student_name, register_number, department, year, subject, email, created_at) VALUES (?,?,?,?,?,?,?,?)",
+                    chunk
+                )
         conn.commit()
         app.logger.info(f"Import success: {added} added, {skipped} skipped.")
     except Exception as e:
