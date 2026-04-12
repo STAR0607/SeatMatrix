@@ -67,8 +67,10 @@
 </style>
 </head>
 <body>
+{% if not automated %}
 <button class="print-btn" onclick="window.print()">Print</button>
-<div class="page">
+{% endif %}
+<div class="page" {% if automated %}style="padding: 5mm; max-width: 100%; border: none; box-shadow: none;"{% endif %}>
   <div class="header">
     <div class="header-left">
       <img src="{{ base_url }}/static/images/sasurie_invert_logo-removebg-preview.png" alt="Sasurie Logo" class="header-logo" onerror="this.style.display='none'"/>

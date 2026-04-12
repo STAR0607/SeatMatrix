@@ -1628,7 +1628,7 @@ def notify_email(exam_id):
                 hall_name = next((s["room_name"] for s in seats if s["room_id"] == rid), "")
                 # Use request.host_url to get full absolute URL (e.g., https://seatmatrix.onrender.com/)
                 base_url = request.host_url.rstrip('/')
-                pdf_url = f"{base_url}/api/print/{exam_id}/{rid}"
+                pdf_url = f"{base_url}/api/print/{exam_id}/{rid}?automated=1"
                 payload.append({
                     "email": inv_em,
                     "student_name": inv.get("name", "Invigilator"),
