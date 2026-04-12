@@ -647,12 +647,17 @@ def bulk_import_students():
         conn.commit()
     except Exception as e:
         conn.rollback()
-        return jsonify({"error": f"Import failed ({type(e).__name__}): {str(e)}"}), 500
+        import traceback
+        err_detail = traceback.format_exc()
+        app.logger.error(f"Bulk Import Fatal: {err_detail}")
+        return jsonify({"error": f"Import failed: {str(e)}", "detail": err_detail}), 500
     finally:
         conn.close()
 
-    return jsonify({"added": added, "skipped": skipped, "total": added + skipped,
-                    "message": f"Imported {added} students. {skipped} skipped (duplicates or empty)."})
+    return jsonify({
+        "added": added, "skipped": skipped, "total": added + skipped,
+        "message": f"Successfully imported {added} students. ({skipped} duplicates or empty rows skipped)."
+    })
 
 
 
@@ -1529,7 +1534,15 @@ def notify_email(exam_id):
     except requests.exceptions.RequestException as e:
         return jsonify({"error": f"Failed to reach n8n webhook: {str(e)}"}), 400
 
-    return jsonify({"success": True, "notified_count": len(payload)})
+    scount = len([p for p in payload if p.get('type') == 'student'])
+    fcount = len([p for p in payload if p.get('type') == 'invigilator'])
+
+    return jsonify({
+        "success": True, 
+        "notified_count": len(payload),
+        "student_count": scount,
+        "staff_count": fcount
+    })
 
 # ── MAIN ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":

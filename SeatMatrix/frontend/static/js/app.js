@@ -1587,7 +1587,11 @@ async function notifyEmail(overrideId = null, btnEventSource = null) {
     const res = await fetch(`/api/notify-email/${targetId}`, { method: 'POST' });
     const data = await res.json();
     if (res.ok) {
-      toast(`✅ Successfully triggered email workflow (${data.notified_count} students)`, 'success');
+      if (data.student_count !== undefined) {
+        toast(`✅ Notified ${data.student_count} students & ${data.staff_count} staff members`, 'success');
+      } else {
+        toast(`✅ Successfully triggered email workflow (${data.notified_count} recipients)`, 'success');
+      }
     } else {
       if (res.status === 401) {
         toast('❌ Unauthorized: Your session has expired. Please log in again.', 'error');
@@ -2191,13 +2195,15 @@ async function bulkImportStudents(input) {
         </div>`;
       }
     } else {
-      toast(data.error || 'Import failed', 'error');
-      if (resultDiv) resultDiv.innerHTML = `<div class="upload-info" style="background:#ffebee;color:#c62828;border-left:3px solid #f44336">❌ ${data.error}</div>`;
+      const errMsg = data.error || 'Import failed';
+      toast(errMsg, 'error');
+      if (resultDiv) resultDiv.innerHTML = `<div class="upload-info" style="background:#ffebee;color:#c62828;border-left:3px solid #f44336">❌ ${errMsg}</div>`;
     }
     input.value = '';
     loadStudents();
   } catch (e) {
-    toast('Import failed', 'error');
+    console.error('Import process error:', e);
+    toast('Import failed: Network or Parsing Error', 'error');
   }
 }
 
