@@ -564,60 +564,117 @@ def bulk_import_students():
                     "student_name": "—", "register_number": regno,
                     "department": dept, "year": year, "subject": "", "email": ""
                 })
+    # ── CSV ──────────────────────────────────────────
+    if filename.endswith(".csv"):
+        try:
+            content = file_bytes.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            content = file_bytes.decode("latin-1")
+
+        if not content.strip():
+            return jsonify({"error": "CSV file is empty"}), 400
+
+        # Handle plain list of register numbers (single column, no header)
+        lines = [l.strip() for l in content.strip().splitlines() if l.strip()]
+        is_plain_list = all(re.match(r'^73\d{10}$', l.split(',')[0].strip()) for l in lines[:5] if l)
+
+        if is_plain_list:
+            for line in lines:
+                regno = line.split(',')[0].strip()
+                if not regno: continue
+                dept, year = decode_register_number(regno)
+                rows_to_insert.append({
+                    "student_name": "—", "register_number": regno,
+                    "department": dept, "year": year, "subject": "", "email": ""
+                })
         else:
             try:
-                # Use a safer snippet for sniffing
+                # Use sniffer to detect delimiter (comma, semicolon, tab)
                 snippet = content[:2048] if len(content) > 2048 else content
-                if snippet.strip():
-                    dialect = csv.Sniffer().sniff(snippet)
-                    reader = csv.DictReader(io.StringIO(content), dialect=dialect)
-                else:
-                    reader = csv.DictReader(io.StringIO(content))
+                dialect = csv.Sniffer().sniff(snippet) if snippet.strip() else None
+                reader = csv.DictReader(io.StringIO(content), dialect=dialect) if dialect else csv.DictReader(io.StringIO(content))
             except Exception:
-                # Absolute fallback to comma
                 reader = csv.DictReader(io.StringIO(content))
 
+            # Smart Header Mapping
+            aliases = {
+                "register_number": ["register number", "regno", "reg no", "roll", "reg_number", "register"],
+                "student_name": ["name", "student name", "student_name", "full name"],
+                "department": ["department", "dept", "branch"],
+                "year": ["year", "yr", "class"],
+                "subject": ["subject", "course"],
+                "email": ["email", "email address", "mail", "mail id"]
+            }
+
             for row in reader:
-                regno = (row.get("Register Number") or row.get("register_number") or
-                         row.get("RegNo") or row.get("regno") or "").strip()
+                # Normalize keys to lowercase for matching
+                row_lower = {str(k).lower().strip(): v for k, v in row.items()}
+                
+                def get_smart(internal_key):
+                    for alias in aliases.get(internal_key, []):
+                        if alias in row_lower:
+                            val = row_lower[alias]
+                            return str(val).strip() if val is not None else ""
+                    return ""
+
+                regno = get_smart("register_number")
                 if not regno: skipped += 1; continue
+                
                 # Auto-decode if dept/year missing
                 auto_dept, auto_year = decode_register_number(regno)
                 rows_to_insert.append({
-                    "student_name": str(row.get("Name") or row.get("name") or row.get("Student Name") or "—").strip(),
+                    "student_name": get_smart("student_name") or "—",
                     "register_number": regno,
-                    "department": str(row.get("Department") or row.get("department") or row.get("Dept") or "").strip() or auto_dept,
-                    "year": str(row.get("Year") or row.get("year") or "").strip() or auto_year,
-                    "subject": str(row.get("Subject") or row.get("subject") or "").strip(),
-                    "email": str(row.get("Email") or row.get("email") or row.get("Email Address") or "").strip(),
+                    "department": get_smart("department") or auto_dept,
+                    "year": get_smart("year") or auto_year,
+                    "subject": get_smart("subject"),
+                    "email": get_smart("email")
                 })
 
     # ── EXCEL (.xlsx / .xls) ─────────────────────────
     elif filename.endswith(".xlsx") or filename.endswith(".xls"):
         if not EXCEL_SUPPORTED:
-            return jsonify({"error": "Excel support not installed. Run: pip install openpyxl"}), 400
+            return jsonify({"error": "Excel support not installed"}), 400
         wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
         ws = wb.active
-        headers = [str(c.value).strip() if c.value else "" for c in next(ws.iter_rows(min_row=1, max_row=1))]
-        col = {h.lower(): i for i, h in enumerate(headers)}
-        def gc(row, *keys):
-            for k in keys:
-                for hk, idx in col.items():
-                    if k.lower() in hk:
-                        v = row[idx].value
-                        return str(v).strip() if v else ""
-            return ""
+        headers = [str(c.value).lower().strip() if c.value else "" for c in next(ws.iter_rows(min_row=1, max_row=1))]
+        
+        aliases = {
+            "register_number": ["register number", "regno", "reg no", "roll", "reg_number", "register"],
+            "student_name": ["name", "student name", "student_name", "full name"],
+            "department": ["department", "dept", "branch"],
+            "year": ["year", "yr", "class"],
+            "subject": ["subject", "course"],
+            "email": ["email", "email address", "mail", "mail id"]
+        }
+
+        def get_col_idx(internal_key):
+            for i, h in enumerate(headers):
+                if h in aliases.get(internal_key, []): return i
+            return -1
+
+        mapping = {k: get_col_idx(k) for k in aliases.keys()}
+
         for row in ws.iter_rows(min_row=2):
-            regno = gc(row, "register", "regno", "reg no", "roll")
+            reg_idx = mapping["register_number"]
+            val = row[reg_idx].value if reg_idx != -1 else None
+            regno = str(val).strip() if val else ""
             if not regno: skipped += 1; continue
+            
             auto_dept, auto_year = decode_register_number(regno)
+            
+            def get_val(key):
+                idx = mapping[key]
+                v = row[idx].value if idx != -1 else None
+                return str(v).strip() if v else ""
+
             rows_to_insert.append({
-                "student_name": gc(row, "name", "student") or "—",
+                "student_name": get_val("student_name") or "—",
                 "register_number": regno,
-                "department": gc(row, "department", "dept") or auto_dept,
-                "year": gc(row, "year") or auto_year,
-                "subject": gc(row, "subject"),
-                "email": gc(row, "email"),
+                "department": get_val("department") or auto_dept,
+                "year": get_val("year") or auto_year,
+                "subject": get_val("subject"),
+                "email": get_val("email")
             })
 
     # ── PDF — extract register numbers automatically ──
@@ -1429,6 +1486,7 @@ def print_hall(exam_id, room_id):
         total_students=len(room_seats),
         summary=summary,
         grid=grid,
+        base_url=request.host_url.rstrip('/'),
         seat_min=min(s.get("seat_number", 0) for s in room_seats),
         seat_max=max(s.get("seat_number", 0) for s in room_seats),
         generated_at=datetime.now().strftime("%d %b %Y %I:%M %p"),
