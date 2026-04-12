@@ -2195,9 +2195,10 @@ async function bulkImportStudents(input) {
         </div>`;
       }
     } else {
-      const errMsg = data.error || 'Import failed';
+      const errMsg = (data && data.error) ? data.error : `Import failed (Status: ${res.status})`;
       toast(errMsg, 'error');
       if (resultDiv) resultDiv.innerHTML = `<div class="upload-info" style="background:#ffebee;color:#c62828;border-left:3px solid #f44336">❌ ${errMsg}</div>`;
+      if (data && data.detail) console.error('Import detail:', data.detail);
     }
     input.value = '';
     loadStudents();

@@ -534,18 +534,25 @@ def bulk_import_students():
 
     file = request.files["file"]
     filename = file.filename.lower()
+    file_bytes = file.read()
+    if not file_bytes:
+        return jsonify({"error": "Uploaded file is empty"}), 400
+
     added = skipped = 0
     rows_to_insert = []
 
     # ── CSV ──────────────────────────────────────────
     if filename.endswith(".csv"):
         try:
-            content = file.read().decode("utf-8-sig")
+            content = file_bytes.decode("utf-8-sig")
         except UnicodeDecodeError:
-            content = file.read().decode("latin-1")
+            content = file_bytes.decode("latin-1")
 
         # Handle plain list of register numbers (single column, no header)
         lines = [l.strip() for l in content.strip().splitlines() if l.strip()]
+        if not lines:
+            return jsonify({"error": "CSV file does not contain any readable text"}), 400
+            
         is_plain_list = all(re.match(r'^73\d{10}$', l.split(',')[0].strip()) for l in lines[:5] if l)
 
         if is_plain_list:
@@ -566,7 +573,7 @@ def bulk_import_students():
                 # Auto-decode if dept/year missing
                 auto_dept, auto_year = decode_register_number(regno)
                 rows_to_insert.append({
-                    "student_name": str(row.get("Name") or row.get("name") or row.get("Student Name") or "—").strip() if row.get("Name") or row.get("name") or row.get("Student Name") else "—",
+                    "student_name": str(row.get("Name") or row.get("name") or row.get("Student Name") or "—").strip(),
                     "register_number": regno,
                     "department": str(row.get("Department") or row.get("department") or row.get("Dept") or "").strip() or auto_dept,
                     "year": str(row.get("Year") or row.get("year") or "").strip() or auto_year,
@@ -578,7 +585,7 @@ def bulk_import_students():
     elif filename.endswith(".xlsx") or filename.endswith(".xls"):
         if not EXCEL_SUPPORTED:
             return jsonify({"error": "Excel support not installed. Run: pip install openpyxl"}), 400
-        wb = openpyxl.load_workbook(io.BytesIO(file.read()), data_only=True)
+        wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
         ws = wb.active
         headers = [str(c.value).strip() if c.value else "" for c in next(ws.iter_rows(min_row=1, max_row=1))]
         col = {h.lower(): i for i, h in enumerate(headers)}
