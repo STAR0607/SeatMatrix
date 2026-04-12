@@ -697,27 +697,38 @@ def bulk_import_students():
 
     # ── Insert into DB ──────────────────────────────
     conn = get_db()
+    c = conn.cursor()
     try:
-        existing = {row[0] for row in conn.execute("SELECT register_number FROM students").fetchall()}
+        # Pre-fetch existing register numbers to avoid O(n^2) behavior
+        existing_rows = conn.execute("SELECT register_number FROM students").fetchall()
+        existing = {row[0] for row in existing_rows}
         
+        # Current time and fixed values
+        now = datetime.now().isoformat()
+        
+        # Identify non-duplicate students to add
+        valid_rows = []
         for r in rows_to_insert:
             if not r["register_number"] or r["register_number"] in existing:
                 skipped += 1
                 continue
             
-            try:
-                if conn.is_pg: conn.execute("SAVEPOINT batch_sp")
-                conn.execute(
-                    "INSERT INTO students (id, student_name, register_number, department, year, subject, email, created_at) VALUES (?,?,?,?,?,?,?,?)",
-                    (str(uuid.uuid4()), r["student_name"], r["register_number"], r["department"], r["year"], "", r.get("email",""), datetime.now().isoformat())
-                )
-                if conn.is_pg: conn.execute("RELEASE SAVEPOINT batch_sp")
-                existing.add(r["register_number"])
-                added += 1
-            except Exception as inner_e:
-                if conn.is_pg: conn.execute("ROLLBACK TO SAVEPOINT batch_sp")
-                skipped += 1
-                app.logger.error(f"Failed to insert raw student: {str(inner_e)}")
+            # Prepare data tuple for insert
+            valid_rows.append((
+                str(uuid.uuid4()), r["student_name"], r["register_number"], 
+                r["department"], r["year"], "", r.get("email",""), now
+            ))
+            existing.add(r["register_number"])
+        
+        # Perform Batch Insertion
+        if valid_rows:
+            query = "INSERT INTO students (id, student_name, register_number, department, year, subject, email, created_at) VALUES (?,?,?,?,?,?,?,?)"
+            if conn.is_pg:
+                query = query.replace('?', '%s')
+            
+            # Use executemany for high performance
+            c.executemany(query, valid_rows)
+            added = len(valid_rows)
         
         conn.commit()
     except Exception as e:
