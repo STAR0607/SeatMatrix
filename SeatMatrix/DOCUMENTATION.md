@@ -326,83 +326,53 @@ Save frequently-used hall layouts so you don't have to re-enter them every time.
 - College Presets with hall layouts
 - Real-time dashboard statistics
 
+### ✅ High-Scale Performance
+SeatMatrix is now optimized for large-scale operations:
+- **Batch Insertion**: Students are imported in chunks of 200, preventing server timeouts during large CSV uploads (800+ students).
+- **Header Mapping**: The system automatically detects variants of headers like "Register Number" or "Roll No".
+- **Worker Stability**: Configured for Gunicorn with extended timeouts to handle complex generation tasks.
 
-### ⚠️ Known Limitations
-- SQLite database — fine for one college, but for very high traffic use PostgreSQL
-- Netlify limitation — Netlify does not support Python Flask natively (see deployment section below)
-
-
-### ❌ Not Built
-- WhatsApp/SMS seat notifications
-- Multiple question papers per student
-- Barcode/QR code on seat cards
-- Dark mode
+### 📧 Automated Notification Pipeline
+SeatMatrix integrates with **Make.com** and **iLovePDF** to provide automated email notifications:
+1. **Trigger**: When you click "Notify via Email", the backend sends a secure payload to Make.com.
+2. **PDF Generation**: iLovePDF visits the SeatMatrix hall URL and generates a professional PDF seating card.
+3. **Smart Delivery**: Make.com identifies the recipient type (Student vs Staff) and sends a personalized email with the PDF attached.
+4. **Rate Limit Protection**: The pipeline includes a 1-second "Sleep" module to stay within Gmail API burst limits.
 
 ---
 
-## GitHub & Netlify Deployment
+## Render Deployment Guide
 
-### ⚠️ Important: Netlify Does Not Support Flask
+SeatMatrix is best deployed on **Render** (Web Service).
 
-Netlify is designed for **static websites** (HTML/CSS/JS only). It cannot run Python Flask servers.
+### ⚙️ Dashboard Settings
+- **Runtime**: Python 3.x
+- **Build Command**: `pip install -r requirements.txt`
+- **Start Command**: `gunicorn -t 120 --bind 0.0.0.0:10000 backend.app:app`
+- **Root Directory**: `SeatMatrix`
 
-### What you need instead:
-
-**Option 1 — Railway (Recommended, Free tier available)**
-1. Create account at [railway.app](https://railway.app)
-2. Connect your GitHub repository
-3. Railway auto-detects Flask and deploys it
-4. Add environment variables (SECRET_KEY) in Railway dashboard
-
-5. Your app gets a public URL like `seatmatrix.up.railway.app`
-
-**Option 2 — Render (Free tier)**
-1. Create account at [render.com](https://render.com)
-2. New → Web Service → Connect GitHub
-3. Build command: `pip install -r requirements.txt`
-4. Start command: `python app.py`
-5. Add environment variables
-
-**Option 3 — PythonAnywhere (Free tier)**
-1. Create account at [pythonanywhere.com](https://pythonanywhere.com)
-2. Upload your files or clone from GitHub
-3. Create a Web App → Flask
-4. Point to your `app.py`
-
-### Pushing to GitHub:
-
-```bash
-# First time setup
-git init
-git add .
-git commit -m "Initial commit — SeatMatrix v2.0"
-git branch -M main
-git remote add origin https://github.com/yourusername/SeatMatrix.git
-git push -u origin main
-
-# After changes
-git add .
-git commit -m "describe your change"
-git push
-```
-
-### Files that must NOT be on GitHub (already in .gitignore):
-- `.env` — contains your secret API key
-- `database/seatmatrix.db` — contains real student data
-- `venv/` — Python packages (too large, recreated with pip install)
-
-
-### Environment variables for deployment:
-Set these in your hosting platform's dashboard:
-```
-SECRET_KEY=your-long-random-secret-key
-FLASK_ENV=production
-FLASK_DEBUG=0
-```
+### 🔑 Environment Variables (.env)
+Set these in the Render "Environment" tab:
+| Key | Value |
+|---|---|
+| `ADMIN_USER` | Your custom admin username |
+| `ADMIN_PASS` | Your custom admin password |
+| `SECRET_KEY` | Generate a long random string |
+| `DATABASE_URL` | (Optional) Supabase Postgres URL |
+| `N8N_WEBHOOK_URL` | Your Make.com Webhook URL |
 
 ---
 
 ## FAQ
+
+**Q: I see a "Worker Timeout" error in the logs. What do I do?**  
+A: Ensure your Render Start Command includes `-t 120`. This gives the server more time to process large data sets.
+
+**Q: How do I change the Admin login?**  
+A: Simply update `ADMIN_USER` and `ADMIN_PASS` in your Render Environment variables. The app will automatically update the database on the next restart.
+
+**Q: Can I use Postgres instead of SQLite?**  
+A: Yes. Provide a `DATABASE_URL` and the app will automatically switch to PostgreSQL mode.
 
 **Q: Can multiple staff use the system at the same time?**
 A: Yes. Each staff member logs in with their own account. The database handles concurrent access.
@@ -413,10 +383,8 @@ A: The new arrangement replaces the old one for that exam.
 **Q: Can I use any CSV file or only Sasurie format?**
 A: Any CSV. If your register numbers follow Sasurie format (73YYXXXNNN), department and year are decoded automatically. Otherwise, provide those columns in the CSV.
 
-
 **Q: How do I backup my data?**
 A: Copy the `database/seatmatrix.db` file. That single file contains everything — exams, rooms, students, users, arrangements.
-
 
 **Q: I forgot the admin password. How do I reset it?**
 A: Stop the server. Open a terminal in the SeatMatrix folder and run:
