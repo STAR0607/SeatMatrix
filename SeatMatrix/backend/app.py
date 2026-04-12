@@ -152,10 +152,22 @@ def init_db():
     except Exception:
         conn.rollback()
 
+    # ── DEFAULT SEED DATA ────────────────────────────
+    admin_user = os.getenv("ADMIN_USER", "admin")
+    admin_pass = os.getenv("ADMIN_PASS", "admin123")
+    hashed_pass = hashlib.sha256(admin_pass.encode()).hexdigest()
 
-    if c.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
-        c.execute("INSERT INTO users VALUES (?,?,?,?)", ("admin", hashlib.sha256("admin123".encode()).hexdigest(), "admin", "Administrator"))
-        c.execute("INSERT INTO users VALUES (?,?,?,?)", ("staff1", hashlib.sha256("staff123".encode()).hexdigest(), "staff", "Dr. Priya Kumar"))
+    # Check if admin exists, if so update password to match ENV (for security)
+    check_admin = c.execute("SELECT username FROM users WHERE username=?", (admin_user,)).fetchone()
+    if check_admin:
+        c.execute("UPDATE users SET password=? WHERE username=?", (hashed_pass, admin_user))
+    else:
+        c.execute("INSERT INTO users VALUES (?,?,?,?)", (admin_user, hashed_pass, "admin", "Administrator"))
+
+    # Optional: Seed staff1 if no users at all
+    if c.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 1:
+        c.execute("INSERT INTO users VALUES (?,?,?,?)", ("staff1", 
+            hashlib.sha256("staff123".encode()).hexdigest(), "staff", "Dr. Priya Kumar"))
 
     if c.execute("SELECT COUNT(*) FROM colleges WHERE id='sasurie'").fetchone()[0] == 0:
         c.execute("INSERT INTO colleges VALUES (?,?,?,?,?,?)",
@@ -721,11 +733,13 @@ def bulk_import_students():
             added += 1
 
         if batch_data:
+            app.logger.info(f"Executing batch insert for {len(batch_data)} students...")
             cur.executemany(
                 "INSERT INTO students (id, student_name, register_number, department, year, subject, email, created_at) VALUES (?,?,?,?,?,?,?,?)",
                 batch_data
             )
         conn.commit()
+        app.logger.info(f"Import success: {added} added, {skipped} skipped.")
     except Exception as e:
         conn.rollback()
         import traceback
@@ -1608,11 +1622,14 @@ def notify_email(exam_id):
         return jsonify({"error": "No students with valid email addresses found in this arrangement."}), 400
 
     try:
-        req = requests.post(webhook_url, json={"data": payload}, timeout=10)
+        app.logger.info(f"Sending notification payload ({len(payload)} items) to webhook: {webhook_url}")
+        req = requests.post(webhook_url, json={"data": payload}, timeout=20)
+        app.logger.info(f"Webhook response: Status {req.status_code}, Body: {req.text[:200]}")
         if req.status_code >= 400:
-            return jsonify({"error": f"n8n webhook error: {req.status_code}"}), 400
+            return jsonify({"error": f"Webhook service error: {req.status_code}", "detail": req.text}), 400
     except requests.exceptions.RequestException as e:
-        return jsonify({"error": f"Failed to reach n8n webhook: {str(e)}"}), 400
+        app.logger.error(f"Failed to reach webhook: {str(e)}")
+        return jsonify({"error": f"Network error reaching webhook: {str(e)}"}), 400
 
     scount = len([p for p in payload if p.get('type') == 'student'])
     fcount = len([p for p in payload if p.get('type') == 'invigilator'])
