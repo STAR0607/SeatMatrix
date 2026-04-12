@@ -475,8 +475,15 @@ def student_detail(sid):
 def users():
     if request.method == "GET":
         conn = get_db()
-        u = rows_to_list(conn.execute("SELECT username,role,name FROM users ORDER BY name").fetchall())
-        conn.close(); return jsonify(u)
+        users_list = rows_to_list(conn.execute("SELECT username,role,name FROM users ORDER BY name").fetchall())
+        conn.close()
+        
+        # Mark the primary admin from environment as protected
+        primary_admin = os.getenv("ADMIN_USER", "admin")
+        for u in users_list:
+            u["is_protected"] = (u["username"] == primary_admin)
+            
+        return jsonify(users_list)
     d = request.json or {}
     username = (d.get("username") or "").strip()
     name     = (d.get("name") or "").strip()

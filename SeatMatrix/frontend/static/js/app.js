@@ -2583,7 +2583,7 @@ async function loadUsers() {
         <td><strong>${u.name}</strong></td>
         <td><code style="background:#f3f4f6;padding:2px 6px;border-radius:4px">${u.username}</code></td>
         <td><span style="background:${u.role==='admin'?'#ffebee':'#e3f2fd'};color:${u.role==='admin'?'#c62828':'#1565c0'};padding:2px 8px;border-radius:12px;font-size:0.8rem;font-weight:600">${u.role}</span></td>
-        <td>${u.username === 'admin'
+        <td>${u.is_protected
           ? '<span style="color:#ccc;font-size:0.8rem">Protected</span>'
           : `<button class="btn-danger" onclick="deleteUser('${u.username}','${u.name}')">Remove</button>`}
         </td>
