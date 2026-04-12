@@ -1140,7 +1140,7 @@ async function loadArchives() {
           </div>
           ${hallsList ? `<div style="display:flex;flex-direction:column;gap:2px;margin-top:10px;margin-bottom:8px">${hallsList}</div>` : ''}
         </div>
-        <div class="archive-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
+        <div class="archive-actions">
           <button class="btn-secondary" onclick="viewArrangement('${a.exam_id}','${safeName}')">View</button>
           <button class="btn-primary" onclick="printArchivedAllHalls('${a.exam_id}')" style="background:linear-gradient(135deg,#C62828,#D32F2F)">🖨️ Print</button>
           <button class="btn-primary" onclick="notifyEmail('${a.exam_id}', this)" style="background:linear-gradient(135deg, #10b981, #059669);border-color:#059669;">📧 Notify via Email</button>
