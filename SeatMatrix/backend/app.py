@@ -548,11 +548,11 @@ def bulk_import_students():
         except UnicodeDecodeError:
             content = file_bytes.decode("latin-1")
 
+        if not content.strip():
+            return jsonify({"error": "CSV file is empty"}), 400
+
         # Handle plain list of register numbers (single column, no header)
         lines = [l.strip() for l in content.strip().splitlines() if l.strip()]
-        if not lines:
-            return jsonify({"error": "CSV file does not contain any readable text"}), 400
-            
         is_plain_list = all(re.match(r'^73\d{10}$', l.split(',')[0].strip()) for l in lines[:5] if l)
 
         if is_plain_list:
@@ -565,7 +565,14 @@ def bulk_import_students():
                     "department": dept, "year": year, "subject": "", "email": ""
                 })
         else:
-            reader = csv.DictReader(io.StringIO(content))
+            try:
+                # Use sniffer to detect delimiter (comma, semicolon, tab)
+                dialect = csv.Sniffer().sniff(content[:2048] if len(content)>2048 else content)
+                reader = csv.DictReader(io.StringIO(content), dialect=dialect)
+            except Exception:
+                # Fallback to comma if sniffing fails
+                reader = csv.DictReader(io.StringIO(content))
+
             for row in reader:
                 regno = (row.get("Register Number") or row.get("register_number") or
                          row.get("RegNo") or row.get("regno") or "").strip()
@@ -1515,8 +1522,9 @@ def notify_email(exam_id):
             inv_em = inv.get("email")
             if inv_em:
                 hall_name = next((s["room_name"] for s in seats if s["room_id"] == rid), "")
-                # We use request.host to construct a full absolute URL for Make.com to fetch the PDF
-                pdf_url = f"https://{request.host}/api/print/{exam_id}/{rid}"
+                # Use request.host_url to get full absolute URL (e.g., https://seatmatrix.onrender.com/)
+                base_url = request.host_url.rstrip('/')
+                pdf_url = f"{base_url}/api/print/{exam_id}/{rid}"
                 payload.append({
                     "email": inv_em,
                     "student_name": inv.get("name", "Invigilator"),

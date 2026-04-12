@@ -1449,13 +1449,18 @@ tbody tr:last-child td { border-bottom: none; }
 .archive-card:hover { border-color: var(--red); box-shadow: var(--shadow); }
 .archive-info h4 { margin: 0 0 6px 0; font-family: 'Playfair Display', serif; font-size: 1.2rem; }
 .archive-meta { font-size: 0.82rem; color: var(--grey-500); display: flex; gap: 12px; }
-.archive-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
-.archive-actions button { flex: 1; min-width: 100px; white-space: nowrap; font-size: 0.82rem; padding: 10px; }
+.archive-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: stretch; justify-content: flex-start; }
+.archive-actions button { flex: 1 1 auto; min-width: 130px; white-space: nowrap; font-size: 0.8rem; padding: 10px 14px; display: flex; align-items: center; justify-content: center; gap: 6px; }
 
 @media (max-width: 768px) {
   .archive-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .archive-actions button { width: 100%; min-width: 0; }
+  .archive-actions button { width: 100%; min-width: 0; flex: none; }
   .archive-actions .btn-danger { grid-column: span 2; }
+}
+
+@media (max-width: 480px) {
+  .archive-actions { grid-template-columns: 1fr; }
+  .archive-actions button { grid-column: span 1 !important; }
 }
 
 .archive-card {
