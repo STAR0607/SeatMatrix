@@ -1534,6 +1534,8 @@ def print_hall(exam_id, room_id):
     
     display_subject = " | ".join(unique_ds) if unique_ds else (exam.get("subject", "") or "—")
 
+    automated = request.args.get("automated") == "1"
+
     html = render_template("print_hall.html",
         room_name=room_name,
         exam_name=exam.get("name", "Exam"),
@@ -1550,6 +1552,7 @@ def print_hall(exam_id, room_id):
         seat_min=min(s.get("seat_number", 0) for s in room_seats),
         seat_max=max(s.get("seat_number", 0) for s in room_seats),
         generated_at=datetime.now().strftime("%d %b %Y %I:%M %p"),
+        automated=automated
     )
     resp = make_response(html)
     resp.headers["Content-Type"] = "text/html; charset=utf-8"

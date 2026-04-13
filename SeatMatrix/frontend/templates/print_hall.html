@@ -77,13 +77,29 @@
     .page { padding: 6mm 8mm; }
     td.seat-a { background: #FFF8F8 !important; } td.seat-b { background: #F3F8FF !important; } td.seat-c { background: #F3FFF5 !important; }
   }
-</style>
+  {% if automated %}
+  <style>
+    body { background: white !important; padding: 0 !important; margin: 0 !important; }
+    .page { 
+      width: 210mm !important; 
+      max-width: 210mm !important; 
+      min-height: 297mm !important; 
+      margin: 0 auto !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 10mm 15mm !important;
+      transform: scale(1);
+      transform-origin: top center;
+    }
+    .print-btn { display: none !important; visibility: hidden !important; }
+  </style>
+  {% endif %}
 </head>
 <body>
-{% if not automated %}
-<button class="print-btn" onclick="window.print()">Print</button>
-{% endif %}
-<div class="page" {% if automated %}style="padding: 5mm; max-width: 100%; border: none; box-shadow: none;"{% endif %}>
+  {% if not automated %}
+  <button class="print-btn" onclick="window.print()">Print</button>
+  {% endif %}
+  <div class="page">
   <div class="header">
     <div class="header-left">
       <img src="{{ base_url }}/static/images/sasurie_invert_logo-removebg-preview.png" alt="Sasurie Logo" class="header-logo" onerror="this.style.display='none'"/>
