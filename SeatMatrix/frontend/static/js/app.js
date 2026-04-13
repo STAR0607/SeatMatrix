@@ -3,6 +3,48 @@
    Sasurie College of Engineering
 ═══════════════════════════════════ */
 
+// ─── CUSTOM CONFIRM MODAL ─────────────────
+function showConfirm(message, title = 'Confirm Action') {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('confirm-modal-overlay');
+    const box = document.getElementById('confirm-modal-box');
+    const msgEl = document.getElementById('confirm-modal-msg');
+    const titleEl = document.getElementById('confirm-modal-title');
+    const okBtn = document.getElementById('confirm-modal-ok');
+    const cancelBtn = document.getElementById('confirm-modal-cancel');
+    
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    overlay.style.display = 'block';
+    
+    // Animate in
+    requestAnimationFrame(() => {
+      overlay.style.opacity = '1';
+      box.style.opacity = '1';
+      box.style.transform = 'translate(-50%, -50%) scale(1)';
+    });
+    
+    function close(result) {
+      overlay.style.opacity = '0';
+      box.style.opacity = '0';
+      box.style.transform = 'translate(-50%, -50%) scale(0.9)';
+      setTimeout(() => { overlay.style.display = 'none'; }, 250);
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onOverlay);
+      resolve(result);
+    }
+    
+    function onOk() { close(true); }
+    function onCancel() { close(false); }
+    function onOverlay(e) { if (e.target === overlay) close(false); }
+    
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlay);
+  });
+}
+
 let currentArrangementId = null;
 let currentArrangementData = null;
 
@@ -545,7 +587,7 @@ function editExam(e) {
 }
 
 async function deleteExam(id) {
-  if (!confirm('Delete this exam? This will also remove its seating arrangement.')) return;
+  if (!await showConfirm('Delete this exam? This will also remove its seating arrangement.', '🗑️ Delete Exam')) return;
   await fetch(`/api/exams/${id}`, { method: 'DELETE' });
   toast('Exam deleted', 'success');
   loadExams();
@@ -609,7 +651,7 @@ async function addRoom() {
 }
 
 async function deleteRoom(id) {
-  if (!confirm('Remove this room?')) return;
+  if (!await showConfirm('Remove this room?', '🗑️ Remove Room')) return;
   await fetch(`/api/rooms/${id}`, { method: 'DELETE' });
   toast('Room removed', 'success');
   loadRooms();
@@ -663,7 +705,7 @@ async function addStaff() {
 }
 
 async function deleteStaff(id) {
-  if (!confirm('Remove this staff member?')) return;
+  if (!await showConfirm('Remove this staff member?', '🗑️ Remove Staff')) return;
   await fetch(`/api/staff/${id}`, { method: 'DELETE' });
   toast('Staff removed', 'success');
   loadStaff();
@@ -1152,7 +1194,7 @@ async function loadArchives() {
 }
 
 async function deleteArchive(archiveId, examName) {
-  if (!confirm(`Delete arrangement for "${examName}"?\nThis cannot be undone.`)) return;
+  if (!await showConfirm(`Delete arrangement for "${examName}"? This cannot be undone.`, '🗑️ Delete Arrangement')) return;
   try {
     const res = await fetch(`/api/archives/${archiveId}`, { method: 'DELETE' });
     if (res.ok) { toast('Deleted', 'success'); loadArchives(); }
@@ -1161,7 +1203,7 @@ async function deleteArchive(archiveId, examName) {
 }
 
 async function removeDuplicateArchives() {
-  if (!confirm('Keep only the LATEST arrangement per exam and delete all older duplicates?\nThis cannot be undone.')) return;
+  if (!await showConfirm('Keep only the LATEST arrangement per exam and delete all older duplicates? This cannot be undone.', '🧹 Remove Duplicates')) return;
   try {
     const res = await fetch('/api/archives');
     const archives = await res.json();
@@ -1577,7 +1619,7 @@ async function notifyEmail(overrideId = null, btnEventSource = null) {
     return;
   }
   
-  if (!confirm('Are you sure you want to trigger automated emails for all students in this arrangement?')) return;
+  if (!await showConfirm('Are you sure you want to trigger automated emails for all students in this arrangement?', '📧 Send Email Notifications')) return;
   
   const btn = btnEventSource || document.getElementById('btn-notify-email-gen') || document.getElementById('btn-notify-email');
   const orgText = btn ? btn.innerHTML : '📧 Notify via Email';
@@ -2179,14 +2221,14 @@ async function addStudent() {
 }
 
 async function deleteStudent(id) {
-  if (!confirm('Remove this student?')) return;
+  if (!await showConfirm('Remove this student?', '🗑️ Remove Student')) return;
   await fetch(`/api/students/${id}`, { method: 'DELETE' });
   toast('Student removed', 'success');
   loadStudents();
 }
 
 async function removeAllStudents() {
-  if (!confirm('Are you sure you want to remove ALL students? This cannot be undone.')) return;
+  if (!await showConfirm('Are you sure you want to remove ALL students? This cannot be undone.', '⚠️ Remove All Students')) return;
   try {
     const res = await fetch('/api/students', { method: 'DELETE' });
     if (res.ok) {
@@ -2409,7 +2451,7 @@ async function saveCollege() {
 }
 
 async function deleteCollege(id) {
-  if (!confirm('Delete this college and all its hall presets?')) return;
+  if (!await showConfirm('Delete this college and all its hall presets?', '🗑️ Delete College')) return;
   await fetch(`/api/colleges/${id}`, { method: 'DELETE' });
   toast('College deleted', 'success');
   loadColleges();
@@ -2440,7 +2482,7 @@ async function bulkDeleteHalls(colId) {
   const ids = Array.from(checked).map(cb => cb.dataset.id);
   if (ids.length === 0) return;
 
-  if (!confirm(`Delete ${ids.length} selected hall presets?`)) return;
+  if (!await showConfirm(`Delete ${ids.length} selected hall presets?`, '🗑️ Delete Hall Presets')) return;
 
   try {
     const res = await fetch(`/api/colleges/${colId}/halls/bulk-delete`, {
@@ -2508,7 +2550,7 @@ async function saveHall() {
 }
 
 async function deleteHall(colId, hallId, hallName) {
-  if (!confirm(`Delete hall preset "${hallName}"?`)) return;
+  if (!await showConfirm(`Delete hall preset "${hallName}"?`, '🗑️ Delete Preset')) return;
   await fetch(`/api/colleges/${colId}/halls/${hallId}`, { method: 'DELETE' });
   toast('Hall preset deleted', 'success');
   loadColleges();
@@ -2641,7 +2683,7 @@ async function addUser() {
 }
 
 async function deleteUser(username, name) {
-  if (!confirm(`Remove user "${name}" (${username})?`)) return;
+  if (!await showConfirm(`Remove user "${name}" (${username})?`, '🗑️ Remove User')) return;
   const res = await fetch(`/api/users/${username}`, { method: 'DELETE' });
   const data = await res.json();
   if (res.ok) { toast('User removed', 'success'); loadUsers(); }

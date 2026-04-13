@@ -1049,7 +1049,26 @@
   <!-- Toast -->
   <div id="toast" class="toast"></div>
 
+
+  <!-- Custom Confirmation Modal -->
+  <div id="confirm-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100000; backdrop-filter:blur(4px); opacity:0; transition:opacity 0.25s ease;">
+    <div id="confirm-modal-box" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.9); background:white; border-radius:16px; padding:32px; max-width:420px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.3); transition:transform 0.25s ease, opacity 0.25s ease; opacity:0;">
+      <div style="text-align:center; margin-bottom:20px;">
+        <div id="confirm-modal-icon" style="width:56px; height:56px; border-radius:50%; background:#FFF5F5; display:inline-flex; align-items:center; justify-content:center; margin-bottom:12px;">
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#C62828" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+        </div>
+        <h3 id="confirm-modal-title" style="font-family:'Playfair Display',serif; font-size:1.25rem; color:#1a1a2e; margin:0 0 8px;">Confirm Action</h3>
+        <p id="confirm-modal-msg" style="font-size:0.9rem; color:#666; line-height:1.5; margin:0;"></p>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button id="confirm-modal-cancel" style="flex:1; padding:11px 20px; border:1.5px solid #ddd; background:white; border-radius:10px; font-size:0.9rem; font-weight:600; color:#666; cursor:pointer; transition:all 0.2s;">Cancel</button>
+        <button id="confirm-modal-ok" style="flex:1; padding:11px 20px; border:none; background:linear-gradient(135deg,#C62828,#E53935); border-radius:10px; font-size:0.9rem; font-weight:600; color:white; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(198,40,40,0.3);">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
 </body>
 
 </html>
