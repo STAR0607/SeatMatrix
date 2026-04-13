@@ -2122,9 +2122,27 @@ function populateStudentDeptFilter() {
 }
 
 async function addStudent() {
-  const name = document.getElementById('student-name').value.trim();
-  const regno = document.getElementById('student-regno').value.trim();
-  if (!name || !regno) { toast('Name and Register Number are required', 'error'); return; }
+  const nameEl = document.getElementById('student-name');
+  const regnoEl = document.getElementById('student-regno');
+  const deptEl = document.getElementById('student-dept');
+  const yrEl = document.getElementById('student-year');
+  const emEl = document.getElementById('student-email');
+  
+  if (!nameEl || !regnoEl) {
+    console.error('Core student form elements missing');
+    return;
+  }
+
+  const name = nameEl.value.trim();
+  const regno = regnoEl.value.trim();
+  const dept = deptEl ? deptEl.value.trim() : '';
+  const year = yrEl ? yrEl.value : '1';
+  const email = emEl ? emEl.value.trim() : '';
+
+  if (!name || !regno) {
+    toast('Name and Register Number are required', 'error');
+    return;
+  }
 
   try {
     const res = await fetch('/api/students', {
@@ -2133,23 +2151,31 @@ async function addStudent() {
       body: JSON.stringify({
         student_name: name,
         register_number: regno,
-        department: document.getElementById('student-dept').value.trim(),
-        year: document.getElementById('student-year').value,
-        email: document.getElementById('student-email').value.trim()
+        department: dept,
+        year: year,
+        email: email
       })
     });
+    
     const data = await res.json();
+    
     if (res.ok) {
       toast('Student added!', 'success');
-      ['student-name','student-regno','student-dept','student-subject', 'student-email'].forEach(id => {
-        document.getElementById(id).value = '';
+      // Clear inputs safely
+      [nameEl, regnoEl, deptEl, emEl].forEach(el => {
+        if (el) el.value = '';
       });
-      document.getElementById('student-year').value = '1';
-      loadStudents();
+      if (yrEl) yrEl.value = '1';
+      
+      // Reload the student list
+      await loadStudents();
     } else {
       toast(data.error || 'Error adding student', 'error');
     }
-  } catch (e) { toast('Error adding student', 'error'); }
+  } catch (e) {
+    console.error('Add student UI error:', e);
+    toast('Error adding student', 'error');
+  }
 }
 
 async function deleteStudent(id) {

@@ -65,6 +65,11 @@ class CursorWrapper:
     def fetchall(self): return self.cur.fetchall()
     def __getattr__(self, name): return getattr(self.cur, name)
 
+def is_valid_email(email):
+    if not email or not isinstance(email, str): return False
+    # Simple regex for basic validation
+    return re.match(r"[^@]+@[^@]+\.[^@]+", email.strip()) is not None
+
 class DBWrapper:
     def __init__(self, conn, is_pg):
         self.conn = conn
@@ -452,8 +457,11 @@ def students():
         conn = get_db()
         conn.execute("INSERT INTO students VALUES (?,?,?,?,?,?,?,?)",tuple(s.values()))
         conn.commit(); conn.close(); return jsonify(s), 201
-    except Exception:
+    except sqlite3.IntegrityError:
         return jsonify({"error":"Register number already exists"}),400
+    except Exception as e:
+        app.logger.error(f"Add student error: {str(e)}")
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 @app.route("/api/students/<sid>", methods=["PUT","DELETE"])
 @login_required
@@ -1601,8 +1609,11 @@ def notify_email(exam_id):
     for s in seats:
         # Only notify students who have an email natively in arrangement payload or fetched from db
         reg = s.get("register_number", "")
-        em = s.get("email") or email_map.get(reg, "")
-        if em and reg:
+        # Get email and strip it
+        em_raw = s.get("email") or email_map.get(reg, "")
+        em = str(em_raw).strip() if em_raw else ""
+        
+        if em and reg and is_valid_email(em):
             payload.append({
                 "exam_name": exam_name,
                 "student_name": s.get("student_name", ""),
@@ -1623,8 +1634,10 @@ def notify_email(exam_id):
         room_ids_list = list(dict.fromkeys(s.get("room_id") for s in seats))
         for i, rid in enumerate(room_ids_list):
             inv = invigilators_list[i % len(invigilators_list)]
-            inv_em = inv.get("email")
-            if inv_em:
+            inv_em_raw = inv.get("email") or ""
+            inv_em = str(inv_em_raw).strip() if inv_em_raw else ""
+            
+            if inv_em and is_valid_email(inv_em):
                 hall_name = next((s["room_name"] for s in seats if s["room_id"] == rid), "")
                 # Use request.host_url to get full absolute URL (e.g., https://seatmatrix.onrender.com/)
                 base_url = request.host_url.rstrip('/')
