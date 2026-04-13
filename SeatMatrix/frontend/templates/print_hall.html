@@ -79,19 +79,25 @@
   }
   {% if automated %}
   <style>
-    body { background: white !important; padding: 0 !important; margin: 0 !important; }
+    /* Force the PDF tool to see only the content, no extra canvas */
+    @page { size: A4 portrait; margin: 0; }
+    html, body { 
+      background: white !important; 
+      margin: 0 !important; 
+      padding: 0 !important; 
+      width: 210mm; /* Fixed width for consistent scaling */
+      height: auto !important; 
+    }
     .page { 
-      width: 210mm !important; 
-      max-width: 210mm !important; 
-      min-height: 297mm !important; 
-      margin: 0 auto !important;
+      width: 100% !important; 
+      max-width: 100% !important; 
+      min-height: 0 !important; /* Allow height to be determined by content */
+      margin: 0 !important;
       border: none !important;
       box-shadow: none !important;
-      padding: 10mm 15mm !important;
-      transform: scale(1);
-      transform-origin: top center;
+      padding: 12mm 15mm !important; /* Professional margins */
     }
-    .print-btn { display: none !important; visibility: hidden !important; }
+    .print-btn { display: none !important; }
   </style>
   {% endif %}
 </head>
