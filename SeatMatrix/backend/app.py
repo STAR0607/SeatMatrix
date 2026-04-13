@@ -411,9 +411,15 @@ def staff():
     s = {"id":str(uuid.uuid4()),"name":d["name"],"email":d.get("email",""),
          "department":d.get("department",""),"phone":d.get("phone",""),
          "created_at":datetime.now().isoformat()}
-    conn = get_db()
-    conn.execute("INSERT INTO staff VALUES (?,?,?,?,?,?)",tuple(s.values()))
-    conn.commit(); conn.close(); return jsonify(s), 201
+    try:
+        conn = get_db()
+        conn.execute("""
+            INSERT INTO staff (id, name, email, department, phone, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (s["id"], s["name"], s["email"], s["department"], s["phone"], s["created_at"]))
+        conn.commit(); conn.close(); return jsonify(s), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/staff/<sid>", methods=["PUT","DELETE"])
 @login_required
@@ -455,7 +461,10 @@ def students():
          "created_at":datetime.now().isoformat()}
     try:
         conn = get_db()
-        conn.execute("INSERT INTO students VALUES (?,?,?,?,?,?,?,?)",tuple(s.values()))
+        conn.execute("""
+            INSERT INTO students (id, student_name, register_number, department, year, subject, email, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (s["id"], s["student_name"], s["register_number"], s["department"], s["year"], s["subject"], s["email"], s["created_at"]))
         conn.commit(); conn.close(); return jsonify(s), 201
     except sqlite3.IntegrityError:
         return jsonify({"error":"Register number already exists"}),400
