@@ -78,7 +78,6 @@
     td.seat-a { background: #FFF8F8 !important; } td.seat-b { background: #F3F8FF !important; } td.seat-c { background: #F3FFF5 !important; }
   }
   {% if automated %}
-  <style>
     /* Force the PDF tool to see only the content, no extra canvas */
     @page { size: A4 portrait; margin: 0; }
     html, body { 
@@ -98,8 +97,8 @@
       padding: 12mm 15mm !important; /* Professional margins */
     }
     .print-btn { display: none !important; }
-  </style>
   {% endif %}
+</style>
 </head>
 <body>
   {% if not automated %}
