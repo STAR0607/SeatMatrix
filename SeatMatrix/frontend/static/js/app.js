@@ -169,10 +169,15 @@ async function doLogout() {
   showPage('login');
 }
 
-function togglePasswordVisibility() {
-  const pwdInput = document.getElementById('login-password');
-  const eyeOn = document.getElementById('eye-on-svg');
-  const eyeOff = document.getElementById('eye-off-svg');
+function togglePasswordVisibility() { togglePwdVisibility('login-password'); }
+
+function togglePwdVisibility(inputId) {
+  const pwdInput = document.getElementById(inputId);
+  if (!pwdInput) return;
+  const wrapper = pwdInput.closest('.password-wrapper');
+  if (!wrapper) return;
+  const eyeOn = wrapper.querySelector('.eye-on');
+  const eyeOff = wrapper.querySelector('.eye-off');
   if (pwdInput.type === 'password') {
     pwdInput.type = 'text';
     if (eyeOn) eyeOn.style.display = 'block';
