@@ -173,10 +173,7 @@ def init_db():
     if admin_user != "admin":
         c.execute("DELETE FROM users WHERE username='admin'")
 
-    # Optional: Seed staff1 if no users at all
-    if c.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 1:
-        c.execute("INSERT INTO users VALUES (?,?,?,?)", ("staff1", 
-            hashlib.sha256("staff123".encode()).hexdigest(), "staff", "Dr. Priya Kumar"))
+
 
     if c.execute("SELECT COUNT(*) FROM colleges WHERE id='sasurie'").fetchone()[0] == 0:
         c.execute("INSERT INTO colleges VALUES (?,?,?,?,?,?)",
