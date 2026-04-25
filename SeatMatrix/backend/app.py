@@ -88,14 +88,16 @@ class DBWrapper:
 
 def get_db():
     if DATABASE_URL:
-        # PostgreSQL connection
-        conn = psycopg2.connect(DATABASE_URL)
-        return DBWrapper(conn, True)
-    else:
-        # SQLite connection
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        return DBWrapper(conn, False)
+        try:
+            # PostgreSQL connection (Supabase)
+            conn = psycopg2.connect(DATABASE_URL, connect_timeout=10)
+            return DBWrapper(conn, True)
+        except Exception as pg_err:
+            app.logger.warning(f"PostgreSQL unavailable ({pg_err}), falling back to SQLite.")
+    # SQLite fallback
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return DBWrapper(conn, False)
 
 
 def init_db():
