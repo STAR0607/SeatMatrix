@@ -145,8 +145,15 @@ def init_db():
     );
     """
     if DATABASE_URL:
-        # PostgreSQL doesn't have executescript, run as one or split
-        c.execute(script)
+        # PostgreSQL: execute each statement individually (no multi-statement support)
+        statements = [s.strip() for s in script.split(';') if s.strip()]
+        for stmt in statements:
+            try:
+                c.execute(stmt)
+                conn.commit()
+            except Exception as pg_err:
+                conn.rollback()
+                app.logger.warning(f"init_db PG stmt skipped: {pg_err}")
     else:
         # sqlite3 executescript handles multiple statements
         c.executescript(script)
@@ -222,7 +229,12 @@ def init_db():
     conn.close()
 
 
-init_db()
+try:
+    init_db()
+except Exception as _init_err:
+    import traceback
+    print(f"[STARTUP ERROR] init_db failed: {_init_err}")
+    traceback.print_exc()
 
 def row_to_dict(row): return dict(row) if row else None
 def rows_to_list(rows): return [dict(r) for r in rows]
